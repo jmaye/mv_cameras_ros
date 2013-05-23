@@ -1,8 +1,14 @@
-mv-cameras-ros (0.1-3) precise; urgency=low
+mv-cameras-ros (0.1-2) precise; urgency=low
 
   * close to done, just to add some diagnostics tools on top
 
- -- Jerome Maye <jmaye@jmaye-laptop>  Thu, 23 May 2013 17:50:00 +0000
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Thu, 23 May 2013 17:57:15 +0000
+
+mv-cameras-ros (0.1-2) precise; urgency=low
+
+  * close to done, just to add some diagnostics tools on top
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Thu, 23 May 2013 17:50:00 +0000
 
 mv-cameras-ros (0.1-2) precise; urgency=low
 
