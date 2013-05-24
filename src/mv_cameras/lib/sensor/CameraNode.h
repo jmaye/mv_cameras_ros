@@ -27,6 +27,8 @@
 #include <string>
 
 #include <ros/ros.h>
+#include <diagnostic_updater/diagnostic_updater.h>
+#include <diagnostic_updater/publisher.h>
 
 #include <libmv/DriverBase/Include/mvDriverBaseEnums.h>
 
@@ -109,6 +111,8 @@ namespace mv {
     /// Publishes an image
     void publishImage(const ros::Time& timestamp,
       const mvIMPACT::acquire::Request* request);
+    /// Diagnose camera
+    void diagnoseCamera(diagnostic_updater::DiagnosticStatusWrapper& status);
     /** @}
       */
 
@@ -139,14 +143,40 @@ namespace mv {
     int _height;
     /// Request number
     int _requestNr;
-    /// Counter
-    unsigned int _cnt;
     /// Timeout
     int _timeoutMs;
     /// Last request number
     int _lastRequestNr;
     /// Retry timeout
     double _retryTimeout;
+    /// Camera serial
+    std::string _serial;
+    /// Device version
+    std::string _deviceVersion;
+    /// Firmware version
+    std::string _firmwareVersion;
+    /// Device family
+    std::string _family;
+    /// Device product
+    std::string _product;
+    /// Device IP
+    std::string _deviceIP;
+    /// Device subnet mask
+    std::string _deviceSubnetMask;
+    /// Device MAC address
+    std::string _deviceMACAddress;
+    /// Device FPGA version
+    std::string _deviceFPGAVersion;
+    /// Diagnostic updater
+    diagnostic_updater::Updater _updater;
+    /// Frequency diagnostic for image acquisition and publishing
+    std::shared_ptr<diagnostic_updater::HeaderlessTopicDiagnostic> _imgFreq;
+    /// Image minimum frequency
+    double _imgMinFreq;
+    /// Image maximum frequency
+    double _imgMaxFreq;
+    /// FPS tolerance between desired and actual
+    double _fpsTolerance;
     /** @}
       */
 

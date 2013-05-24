@@ -29,6 +29,8 @@
 #include <unordered_map>
 
 #include <ros/ros.h>
+#include <diagnostic_updater/diagnostic_updater.h>
+#include <diagnostic_updater/publisher.h>
 
 namespace mvIMPACT {
   namespace acquire {
@@ -88,6 +90,9 @@ namespace mv {
     void updateDeviceList(const ros::TimerEvent& event);
     /// Retrieves the parameters
     void getParameters();
+    /// Diagnose camera manager
+    void diagnoseCameraManager(diagnostic_updater::DiagnosticStatusWrapper&
+      status);
     /** @}
       */
 
@@ -104,6 +109,16 @@ namespace mv {
     std::string _masterCameraSerial;
     /// Container for camera nodes
     std::unordered_map<std::string, std::shared_ptr<CameraNode> > _cameraNodes;
+    /// MV driver version string
+    std::string _driverVersion;
+    /// Diagnostic updater
+    diagnostic_updater::Updater _updater;
+    /// Frequency checker for the discover of devices
+    std::shared_ptr<diagnostic_updater::FrequencyStatus> _cmFreq;
+    /// Discover devices minimum frequency
+    double _discoverMinFreq;
+    /// Discover devices maximum frequency
+    double _discoverMaxFreq;
     /** @}
       */
 

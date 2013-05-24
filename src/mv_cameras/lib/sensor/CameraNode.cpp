@@ -18,6 +18,8 @@
 
 #include "sensor/CameraNode.h"
 
+#include <cmath>
+
 #include <sstream>
 #include <array>
 #include <iomanip>
@@ -47,9 +49,13 @@ namespace mv {
       _device(device),
       _isMaster(isMaster),
       _requestNr(INVALID_ID),
-      _cnt(0),
       _lastRequestNr(INVALID_ID) {
     getParameters();
+    _serial = _device->serial.readS();
+    _deviceVersion = _device->deviceVersion.readS();
+    _firmwareVersion = _device->firmwareVersion.getTranslationDictString();
+    _family = _device->family.readS();
+    _product = _device->product.readS();
     // setting interface to GenICAm, needed for setting synchronization
     _device->interfaceLayout.write(dilGenICam);
     // acquisition start/stop by user
@@ -57,27 +63,22 @@ namespace mv {
     _device->open();
     DeviceModule dm(_device);
     DeviceControl dc(_device);
-    ROS_INFO_STREAM("CameraNode::CameraNode(): "
-      << "InterfaceLayout: "
-      << _device->interfaceLayout.readS() << std::endl
-      << "gevDeviceIPAddress: " << getIPAddress(dm.gevDeviceIPAddress.readS())
-      << std::endl
-      << "gevDeviceSubnetMask: " << getIPAddress(dm.gevDeviceSubnetMask.readS())
-      << std::endl
-      << "gevDeviceMACAddress: "
-      << getMACAddress(dm.gevDeviceMACAddress.readS()) << std::endl
-      << "deviceTemperature: " << dc.deviceTemperature.read() << " [deg. C]"
-      << std::endl
-      << "mvDeviceFPGAVersion: " << dc.mvDeviceFPGAVersion.readS());
-    ROS_INFO_STREAM("CameraNode::CameraNode(): opened device: "
-      << _device->serial.read());
+    _deviceIP = getIPAddress(dm.gevDeviceIPAddress.readS());
+    _deviceSubnetMask = getIPAddress(dm.gevDeviceSubnetMask.readS());
+    _deviceMACAddress = getMACAddress(dm.gevDeviceMACAddress.readS());
+    _deviceFPGAVersion = dc.mvDeviceFPGAVersion.readS();
     setSynchronization();
     setFeatures();
     initAcquisition();
-    ROS_INFO_STREAM("CameraNode::CameraNode(): acquisition starting: "
-      << _device->serial.read());
     _imageSnappyPublisher = _nodeHandle.advertise<mv_cameras::ImageSnappyMsg>(
-      _device->serial.readS() + "/image_snappy", _queueDepth);
+      _serial + "/image_snappy", _queueDepth);
+    _updater.setHardwareID(_serial);
+    _imgFreq.reset(new diagnostic_updater::HeaderlessTopicDiagnostic(
+      _serial + "/image_snappy", _updater,
+      diagnostic_updater::FrequencyStatusParam(&_imgMinFreq, &_imgMaxFreq,
+      0.1, 10)));
+    _updater.add("Camera status", this, &CameraNode::diagnoseCamera);
+    _updater.force_update();
   }
 
   CameraNode::~CameraNode() {
@@ -86,7 +87,7 @@ namespace mv {
     if (_device->acquisitionStartStopBehaviour.read() == assbUser) {
       if ((result = static_cast<TDMR_ERROR>(fi.acquisitionStop())) !=
           DMR_NO_ERROR) {
-        ROS_ERROR_STREAM("CameraNode::~CameraNode(): "
+        ROS_WARN_STREAM("CameraNode::~CameraNode(): "
           << "'FunctionInterface.acquisitionStop' returned with an "
           "unexpected result: " << result
           << "(" << ImpactAcquireException::getErrorCodeAsString(result)
@@ -98,14 +99,12 @@ namespace mv {
     }
     fi.imageRequestReset(0, 0);
     while ((_requestNr = fi.imageRequestWaitFor(0)) >= 0) {
-      ROS_ERROR_STREAM("CameraNode::~CameraNode(): "
+      ROS_WARN_STREAM("CameraNode::~CameraNode(): "
         "Request " << _requestNr << " did return with status "
         << fi.getRequest(_requestNr)->requestResult.readS());
       fi.imageRequestUnlock(_requestNr);
     }
     _device->close();
-    ROS_INFO_STREAM("CameraNode::~CameraNode(): closed device: "
-      << _device->serial.read());
   }
 
 /******************************************************************************/
@@ -114,7 +113,7 @@ namespace mv {
 
   std::string CameraNode::getSerial() const {
     Mutex::ScopedLock lock(_mutex);
-    return _device->serial.read();
+    return _serial;
   }
 
   PropertyIDeviceState CameraNode::getState() const {
@@ -208,17 +207,14 @@ namespace mv {
     imageSnappyMsg->header.seq = request->infoFrameNr.read();
     imageSnappyMsg->width = request->imageWidth.read();
     imageSnappyMsg->height = request->imageHeight.read();
-//    ROS_INFO_STREAM("CameraNode::publishImage(): "
-//      "uncompressed size: " << request->imageSize.read());
     std::string imageSnappy;
     snappy::Compress(reinterpret_cast<char*>(request->imageData.read()),
       request->imageSize.read(), &imageSnappy);
-//    ROS_INFO_STREAM("CameraNode::publishImage(): "
-//      "compressed size: " << imageSnappy.size());
     imageSnappyMsg->data.resize(imageSnappy.size());
     std::copy(imageSnappy.begin(), imageSnappy.end(),
       imageSnappyMsg->data.begin());
     _imageSnappyPublisher.publish(imageSnappyMsg);
+    _imgFreq->tick();
   }
 
   void CameraNode::process() {
@@ -231,21 +227,10 @@ namespace mv {
       if (fi.isRequestNrValid(_requestNr)) {
         const Request* pRequest = fi.getRequest(_requestNr);
         if (pRequest->isOK()) {
-          ++_cnt;
-          if (_cnt % 100 == 0) {
-            ROS_INFO_STREAM("CameraNode::process(): "
-              << "Info from " << _device->serial.readS()
-              << ": " << statistics.framesPerSecond.name() << ": "
-              << statistics.framesPerSecond.readS()
-              << ", " << statistics.errorCount.name() << ": "
-              << statistics.errorCount.readS()
-              << ", " << statistics.captureTime_s.name() << ": "
-              << statistics.captureTime_s.readS());
-          }
           publishImage(ros::Time::now(), pRequest);
         }
         else {
-          ROS_ERROR_STREAM("CameraNode::process(): "
+          ROS_WARN_STREAM("CameraNode::process(): "
             << "Error: " << pRequest->requestResult.readS());
         }
         if (fi.isRequestNrValid(_lastRequestNr)) {
@@ -255,7 +240,7 @@ namespace mv {
         fi.imageRequestSingle();
       }
       else {
-        ROS_ERROR_STREAM("CameraNode::process(): "
+        ROS_WARN_STREAM("CameraNode::process(): "
           << "imageRequestWaitFor failed (" << _requestNr << ", "
           << ImpactAcquireException::getErrorCodeAsString(_requestNr) << ")"
           << ", timeout value too small?");
@@ -357,6 +342,65 @@ namespace mv {
       "/frame_id", _frameId, _device->serial.readS());
     _nodeHandle.param<int>(_device->serial.readS() + "/queue_depth",
       _queueDepth, 100);
+    _nodeHandle.param<double>(_device->serial.readS() + "/img_min_freq",
+      _imgMinFreq, 5);
+    _nodeHandle.param<double>(_device->serial.readS() + "/img_max_freq",
+      _imgMaxFreq, 15);
+    _nodeHandle.param<double>(_device->serial.readS() + "/fps_tolerance",
+      _fpsTolerance, 2);
+  }
+
+  void CameraNode::diagnoseCamera(diagnostic_updater::DiagnosticStatusWrapper&
+      status) {
+    Mutex::ScopedLock lock(_mutex);
+    DeviceControl dc(_device);
+    float temperature = dc.deviceTemperature.read();
+    Statistics statistics(_device);
+    float captureTime_s = statistics.captureTime_s.read();
+    int errorCount = statistics.errorCount.read();
+    int abortedRequestsCount = statistics.abortedRequestsCount.read();
+    int timedOutRequestsCount = statistics.timedOutRequestsCount.read();
+    float framesPerSecond = statistics.framesPerSecond.read();
+    int frameCount = statistics.frameCount.read();
+    float imageProcTime_s = statistics.imageProcTime_s.read();
+    float formatConvertTime_s = statistics.formatConvertTime_s.read();
+    float queueTime_s = statistics.queueTime_s.read();
+    int lostImagesCount = statistics.lostImagesCount.read();
+    int framesIncompleteCount = statistics.framesIncompleteCount.read();
+    float missingDataAverage_pc = statistics.missingDataAverage_pc.read();
+    long retransmitCount = statistics.retransmitCount.read();
+    status.add("Serial", _serial);
+    status.add("Version", _deviceVersion);
+    status.add("Firmware", _firmwareVersion);
+    status.add("FPGA", _deviceFPGAVersion);
+    status.add("Family", _family);
+    status.add("Product", _product);
+    status.add("IP address", _deviceIP);
+    status.add("Subnet mask", _deviceSubnetMask);
+    status.add("MAC address", _deviceMACAddress);
+    status.add("State", _device->state.readS());
+    status.add("Temperature", temperature);
+    status.add("Capture time", captureTime_s);
+    status.add("Error count", errorCount);
+    status.add("Aborted requests count", abortedRequestsCount);
+    status.add("Timed out requests count", timedOutRequestsCount);
+    status.add("Frames per second", framesPerSecond);
+    status.add("Frame count", frameCount);
+    status.add("Image processing time", imageProcTime_s);
+    status.add("Format convert time", formatConvertTime_s);
+    status.add("Queue time", queueTime_s);
+    status.add("Lost images count", lostImagesCount);
+    status.add("Frames incomplete count", framesIncompleteCount);
+    status.add("Missing data average", missingDataAverage_pc);
+    status.add("Retransmit count", retransmitCount);
+    if (std::fabs(_framerate - framesPerSecond) < _fpsTolerance)
+      status.summaryf(diagnostic_msgs::DiagnosticStatus::OK,
+        "Desired framerate met (desired: %f, actual: %f).",
+        _framerate, framesPerSecond);
+    else
+      status.summaryf(diagnostic_msgs::DiagnosticStatus::WARN,
+        "Desired framerate not met (desired: %f, actual: %f).",
+        _framerate, framesPerSecond);
   }
 
 }

@@ -1,6 +1,5 @@
 <launch>
-  <node name="velodyne" pkg="velodyne" type="velodyne_node" output="screen">
-    <rosparam command="load" file="$(find velodyne)/etc/velodyne64.yaml"/>
-    <param name="sensor/calibration_file" value="$(find velodyne)/etc/calib-HDL-64E.dat"/>
+  <node name="mv_cameras_manager" pkg="mv_cameras" type="mv_cameras_node" output="screen">
+    <rosparam command="load" file="$(find mv_cameras)/etc/mv_cameras.yaml"/>
   </node>
 </launch>

@@ -27,7 +27,7 @@
 #include "sensor/CameraManagerNode.h"
 
 int main(int argc, char** argv) {
-  ros::init(argc, argv, "mv_camera_manager");
+  ros::init(argc, argv, "mv_cameras_manager");
   ros::NodeHandle nh("~");
   try {
     mv::CameraManagerNode cm(nh);

@@ -18,6 +18,8 @@
 
 #include "sensor/CameraManagerNode.h"
 
+#include <sstream>
+
 #include <mvIMPACT_CPP/mvIMPACT_acquire.h>
 
 #include "sensor/CameraNode.h"
@@ -36,9 +38,16 @@ namespace mv {
       _nodeHandle(nh) {
     getParameters();
     _deviceManager.reset(new DeviceManager());
-    ROS_INFO_STREAM("CameraManagerNode::CameraManagerNode(): " << std::endl
-      << "library version: "
-      << _deviceManager->getVersionAsString(lqDeviceManager));
+    _driverVersion = _deviceManager->getVersionAsString(lqDeviceManager);
+    _updater.setHardwareID("mv_cameras_manager");
+    _cmFreq.reset(new diagnostic_updater::FrequencyStatus(
+      diagnostic_updater::FrequencyStatusParam(
+      &_discoverMinFreq, &_discoverMaxFreq, 0.1, 60)));
+    _updater.add("Frequency", _cmFreq.get(),
+      &diagnostic_updater::FrequencyStatus::run);
+    _updater.add("Camera manager", this,
+      &CameraManagerNode::diagnoseCameraManager);
+    _updater.force_update();
   }
 
   CameraManagerNode::~CameraManagerNode() {
@@ -53,11 +62,6 @@ namespace mv {
       // looking over the existing camera list and removing unplugged one
       for (auto it = _cameraNodes.begin(); it != _cameraNodes.end(); ++it) {
         if (it->second->getState().read() == dsAbsent) {
-          if (it->second->isMaster())
-            ROS_WARN_STREAM("CameraManagerNode::updateDeviceList(): "
-              "removing master camera");
-          ROS_INFO_STREAM("CameraManagerNode::updateDeviceList(): " << std::endl
-            << "removing device: " << it->second->getSerial());
           it->second->interrupt();
           _cameraNodes.erase(it->first);
         }
@@ -65,8 +69,6 @@ namespace mv {
       // updating camera list and launching new one
       _deviceManager->updateDeviceList();
       const size_t numDevices = _deviceManager->deviceCount();
-      ROS_INFO_STREAM("CameraManagerNode::updateDeviceList(): " << std::endl
-        << "number of active devices: " << _cameraNodes.size());
       for (size_t i = 0; i < numDevices; ++i) {
         Device* device = (*_deviceManager)[i];
         if (device->state.read() == dsPresent &&
@@ -74,21 +76,6 @@ namespace mv {
           bool isMaster = false;
           if (device->serial.readS() == _masterCameraSerial)
             isMaster = true;
-          ROS_INFO_STREAM("CameraManagerNode::updateDeviceList(): "
-            "adding device: " << std::endl
-            << "DeviceClass: " << device->deviceClass.readS() << std::endl
-            << "Family: " << device->family.read() << std::endl
-            << "Product: " << device->product.read() << std::endl
-            << "Serial: " << device->serial.read() << std::endl
-            << "State: " << device->state.readS() << std::endl
-            << "DeviceID: " << device->deviceID.read() << std::endl
-            << "DeviceVersion: " << device->deviceVersion.read() << std::endl
-            << "FirmwareVersion: "
-            << device->firmwareVersion.getTranslationDictString() << std::endl
-            << "LoadSettings: "
-            << device->loadSettings.getTranslationDictString() << std::endl
-            << "InterfaceLayout: "
-            << device->interfaceLayout.readS());
           _cameraNodes[device->serial.readS()] = std::shared_ptr<CameraNode>(
             new CameraNode(_nodeHandle, device, isMaster));
           _cameraNodes[device->serial.readS()]->start();
@@ -114,6 +101,13 @@ namespace mv {
         << "message: " << e.what());
       ROS_WARN_STREAM("Retrying in " << _updateDeviceListTime << " [s]");
     }
+    catch (...) {
+      ROS_WARN_STREAM("CameraManagerNode::updateDeviceList(): "
+        "Unknown exception");
+      ROS_WARN_STREAM("Retrying in " << _updateDeviceListTime << " [s]");
+    }
+    _cmFreq->tick();
+    _updater.update();
   }
 
   int CameraManagerNode::spin() {
@@ -129,6 +123,29 @@ namespace mv {
       _updateDeviceListTime, 10.0);
     _nodeHandle.param<std::string>("device_manager/master_camera_serial",
       _masterCameraSerial, "GX002409");
+    _nodeHandle.param<double>("device_manager/diagnostics/discover_min_freq",
+      _discoverMinFreq, 0.1);
+    _nodeHandle.param<double>("device_manager/diagnostics/discover_max_freq",
+      _discoverMaxFreq, 0.2);
+  }
+
+  void CameraManagerNode::diagnoseCameraManager(
+      diagnostic_updater::DiagnosticStatusWrapper& status) {
+    if (_cameraNodes.count(_masterCameraSerial))
+      status.summary(diagnostic_msgs::DiagnosticStatus::OK,
+        "Master camera running.");
+    else
+      status.summary(diagnostic_msgs::DiagnosticStatus::WARN,
+        "Master camera not running.");
+    status.add("Driver version", _driverVersion);
+    status.add("Master camera", _masterCameraSerial);
+    status.add("Connected cameras", _cameraNodes.size());
+    size_t idx = 0;
+    for (auto it = _cameraNodes.cbegin(); it != _cameraNodes.cend(); ++it) {
+      std::stringstream keySs;
+      keySs << "Camera " << idx++;
+      status.add(keySs.str(), it->first);
+    }
   }
 
 }
