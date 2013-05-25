@@ -1,3 +1,9 @@
+mv-cameras-ros (0.1-4) precise; urgency=low
+
+  * dependency on std_msgs 
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Sat, 25 May 2013 10:45:55 +0000
+
 mv-cameras-ros (0.1-3) precise; urgency=low
 
   * diagnostics tools added 
