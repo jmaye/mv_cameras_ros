@@ -29,6 +29,7 @@
 #include <ros/ros.h>
 #include <diagnostic_updater/diagnostic_updater.h>
 #include <diagnostic_updater/publisher.h>
+#include <image_transport/image_transport.h>
 
 #include <libmv/DriverBase/Include/mvDriverBaseEnums.h>
 
@@ -121,8 +122,12 @@ namespace mv {
       */
     /// ROS node handle
     ros::NodeHandle _nodeHandle;
+    /// ROS image transport
+    image_transport::ImageTransport _imageTransport;
     /// Image snappy publisher
     ros::Publisher _imageSnappyPublisher;
+    /// Image raw publisher
+    image_transport::Publisher _imageRawPublisher;
     /// Frame ID
     std::string _frameId;
     /// Device handle
@@ -177,6 +182,8 @@ namespace mv {
     double _imgMaxFreq;
     /// FPS tolerance between desired and actual
     double _fpsTolerance;
+    /// Image publish type: snappy or raw
+    std::string _imagePublishType;
     /** @}
       */
 

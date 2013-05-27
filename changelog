@@ -1,3 +1,9 @@
+mv-cameras-ros (0.1-5) precise; urgency=low
+
+  * adding image_raw option 
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Mon, 27 May 2013 13:48:15 +0000
+
 mv-cameras-ros (0.1-4) precise; urgency=low
 
   * dependency on std_msgs 
