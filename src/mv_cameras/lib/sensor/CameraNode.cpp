@@ -95,7 +95,7 @@ namespace mv {
     else
       ROS_WARN_STREAM("CameraNode::CameraNode(): "
         "unsupported publisher type" << _imagePublishType);
-    _updater.add("Camera status", this, &CameraNode::diagnoseCamera);
+    _updater.add(_serial + "Camera status", this, &CameraNode::diagnoseCamera);
     _updater.force_update();
   }
 
@@ -251,6 +251,7 @@ namespace mv {
       _imageRawPublisher.publish(imageRawMsg);
     }
     _imgFreq->tick();
+    _updater.update();
   }
 
   void CameraNode::process() {
@@ -307,7 +308,7 @@ namespace mv {
       // timer2 triggers the integration start when timer1 ends
       catcMaster.timerSelector.writeS("Timer2");
       catcMaster.timerDelay.write(0.);
-      catcMaster.timerDuration.write(10000.);
+      catcMaster.timerDuration.write(1000.);
       catcMaster.timerTriggerSource.writeS("Timer1End");
       // set digital I/O for the synchronization
       DigitalIOControl io(_device);

@@ -1,3 +1,9 @@
+mv-cameras-ros (0.1-6) precise; urgency=low
+
+  * corrected diagnostics 
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Mon, 27 May 2013 16:18:23 +0000
+
 mv-cameras-ros (0.1-5) precise; urgency=low
 
   * adding image_raw option 
