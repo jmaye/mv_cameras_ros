@@ -184,6 +184,32 @@ namespace mv {
     double _fpsTolerance;
     /// Image publish type: snappy or raw
     std::string _imagePublishType;
+    /// Last frame timestamp
+    double _lastFrameTime;
+    /// Last frame number
+    int _lastFrameNumber;
+    /// Missed frames count
+    int _missedFramesCount;
+    /// Last inter-frame time
+    double _lastInterFrameTime;
+    /// Last image height
+    int _lastImageHeight;
+    /// Last image width
+    int _lastImageWidth;
+    /// Last image gain
+    float _lastImageGain;
+    /// Last image exposure time
+    int _lastExposureTime;
+    /// Last image timestamp
+    long _lastImageTimestamp;
+    /// Last image channel description
+    std::string _lastImageChannelDesc;
+    /// Last image channel count
+    int _lastImageChannelCount;
+    /// Last image bytes per pixel
+    int _lastImageBytesPerPixel;
+    /// Last transfer delay
+    int _lastInfoTransferDelay;
     /** @}
       */
 

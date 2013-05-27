@@ -1,3 +1,9 @@
+mv-cameras-ros (0.1-7) precise; urgency=low
+
+  * miscellaneous diagnostics improvements 
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Mon, 27 May 2013 20:02:36 +0000
+
 mv-cameras-ros (0.1-6) precise; urgency=low
 
   * corrected diagnostics 
