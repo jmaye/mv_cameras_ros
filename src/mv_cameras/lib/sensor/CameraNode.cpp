@@ -365,6 +365,8 @@ namespace mv {
     ip.colorProcessing.write(cpmBayerToMono);
     ifc.width.write(_width);
     ifc.height.write(_height);
+    AnalogControl anc(_device);
+    anc.gain.write(_gain);
   }
 
   void CameraNode::initAcquisition() {
@@ -397,6 +399,11 @@ namespace mv {
       _framerate, 10.0);
     _nodeHandle.param<double>(_device->serial.readS() + "/exposure_time",
       _exposureTime, 1000.0);
+    if (_exposureTime > 1e6 / _framerate)
+      ROS_WARN_STREAM("CameraNode::getParameters(): "
+        "exposure time is bigger than frame duration");
+    _nodeHandle.param<double>(_device->serial.readS() + "/gain",
+      _gain, 0.0);
     _nodeHandle.param<int>(_device->serial.readS() + "/width",
       _width, 1280);
     _nodeHandle.param<int>(_device->serial.readS() + "/height",

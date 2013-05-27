@@ -210,6 +210,8 @@ namespace mv {
     int _lastImageBytesPerPixel;
     /// Last transfer delay
     int _lastInfoTransferDelay;
+    /// Image gain setting
+    double _gain;
     /** @}
       */
 
