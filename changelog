@@ -1,3 +1,9 @@
+mv-cameras-ros (0.1-10) precise; urgency=low
+
+  * merging libraries 
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Tue, 28 May 2013 09:08:45 +0000
+
 mv-cameras-ros (0.1-9) precise; urgency=low
 
   * update diagnostics 
