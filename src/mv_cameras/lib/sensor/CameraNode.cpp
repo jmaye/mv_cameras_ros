@@ -55,18 +55,18 @@ namespace mv {
       _isMaster(isMaster),
       _requestNr(INVALID_ID),
       _lastRequestNr(INVALID_ID),
-      _lastFrameTime(0),
+      _lastFrameSwTime(0),
       _lastFrameNumber(0),
       _missedFramesCount(0),
-      _lastInterFrameTime(0),
+      _lastInterFrameSwTime(0),
+      _lastInterFrameHwTime(0),
       _lastImageHeight(0),
       _lastImageWidth(0),
       _lastImageGain(0),
       _lastExposureTime(0),
-      _lastImageTimestamp(0),
+      _lastImageHwTimestamp(0),
       _lastImageChannelCount(0),
-      _lastImageBytesPerPixel(0),
-      _lastInfoTransferDelay(0) {
+      _lastImageBytesPerPixel(0) {
     getParameters();
     _serial = _device->serial.readS();
     _deviceVersion = _device->deviceVersion.readS();
@@ -284,17 +284,19 @@ namespace mv {
               (pRequest->infoFrameNr.read() != _lastFrameNumber + 1))
             _missedFramesCount++;
           _lastFrameNumber = pRequest->infoFrameNr.read();
-          if (_lastFrameTime)
-            _lastInterFrameTime = acqTime - _lastFrameTime;
-          _lastFrameTime = acqTime;
+          if (_lastFrameSwTime)
+            _lastInterFrameSwTime = acqTime - _lastFrameSwTime;
+          _lastFrameSwTime = acqTime;
           _lastImageGain = pRequest->infoGain_dB.read();
           _lastExposureTime = pRequest->infoExposeTime_us.read();
-          _lastImageTimestamp = pRequest->infoTimeStamp_us.read();
           _lastImageChannelDesc = pRequest->imageChannelDesc.read();
           _lastImageChannelCount = pRequest->imageChannelCount.read();
           _lastImageBytesPerPixel = pRequest->imageBytesPerPixel.read();
-          _lastInfoTransferDelay = pRequest->infoTransferDelay_us.read();
-          publishImage(ros::Time::now(), pRequest);
+          const long hwTimestamp = pRequest->infoTimeStamp_us.read();
+          if (_lastImageHwTimestamp)
+            _lastInterFrameHwTime = hwTimestamp - _lastImageHwTimestamp;
+          _lastImageHwTimestamp = hwTimestamp;
+          publishImage(ros::Time(acqTime), pRequest);
         }
         else {
           ROS_WARN_STREAM("CameraNode::process(): "
@@ -316,7 +318,7 @@ namespace mv {
     catch (ImpactAcquireException& e) {
       ROS_WARN_STREAM("CameraNode::process(): "
         "ImpactAcquireException: " << std::endl
-        << "serial: " << _device->serial.readS()
+        << "serial: " << _device->serial.readS() << std::endl
         << "error code: " << e.getErrorCodeAsString() << std::endl
         << "message: " << e.what());
       ROS_WARN_STREAM("Retrying in " << _retryTimeout << " [s]");
@@ -398,7 +400,7 @@ namespace mv {
     _nodeHandle.param<double>(_device->serial.readS() + "/framerate",
       _framerate, 10.0);
     _nodeHandle.param<double>(_device->serial.readS() + "/exposure_time",
-      _exposureTime, 1000.0);
+      _exposureTime, 10000.0);
     if (_exposureTime > 1e6 / _framerate)
       ROS_WARN_STREAM("CameraNode::getParameters(): "
         "exposure time is bigger than frame duration");
@@ -471,16 +473,17 @@ namespace mv {
     status.add("Missing data average", missingDataAverage_pc);
     status.add("Retransmit count", retransmitCount);
     status.add("Missed frames count", _missedFramesCount);
-    status.add("Inter-frame time [s]", _lastInterFrameTime);
     status.add("Image height", _lastImageHeight);
     status.add("Image width", _lastImageWidth);
     status.add("Image gain [db]", _lastImageGain);
     status.add("Image exposure time [us]", _lastExposureTime);
-    status.add("Image timestamp [us]", _lastImageTimestamp);
+    status.addf("Image software timestamp [s]", "%f", _lastFrameSwTime);
+    status.add("Image hardware timestamp [us]", _lastImageHwTimestamp);
+    status.add("Inter-frame software time [s]", _lastInterFrameSwTime);
+    status.add("Inter-frame hardware time [us]", _lastInterFrameHwTime);
     status.add("Image channel description", _lastImageChannelDesc);
     status.add("Image channel count", _lastImageChannelCount);
     status.add("Image bytes per pixel", _lastImageBytesPerPixel);
-    status.add("Image info transfer delay [us]", _lastInfoTransferDelay);
     if (std::fabs(_framerate - framesPerSecond) < _fpsTolerance)
       status.summaryf(diagnostic_msgs::DiagnosticStatus::OK,
         "Target framerate met (desired: %f, actual: %f).",

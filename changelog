@@ -1,3 +1,9 @@
+mv-cameras-ros (0.1-9) precise; urgency=low
+
+  * update diagnostics 
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Tue, 28 May 2013 08:57:44 +0000
+
 mv-cameras-ros (0.1-8) precise; urgency=low
 
   * adding gain control 
