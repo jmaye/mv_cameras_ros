@@ -1,6 +1,6 @@
 device_manager:
   update_device_list_time: 10.0
-  master_camera_serial: "GX002409"
+  master_camera_serial: "GX002408"
   diagnostics:
     discover_min_freq: 0.1
     discover_max_freq: 0.2
