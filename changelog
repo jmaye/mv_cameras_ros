@@ -1,3 +1,9 @@
+mv-cameras-ros (0.1-12) precise; urgency=low
+
+  * make the expression catching const 
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Tue, 28 May 2013 17:19:49 +0000
+
 mv-cameras-ros (0.1-11) precise; urgency=low
 
   * changing master camera for the PRIUS 

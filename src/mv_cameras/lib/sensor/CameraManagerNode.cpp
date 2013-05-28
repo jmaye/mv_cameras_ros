@@ -82,20 +82,20 @@ namespace mv {
         }
       }
     }
-    catch (ImpactAcquireException& e) {
+    catch (const ImpactAcquireException& e) {
       ROS_WARN_STREAM("CameraManagerNode::updateDeviceList(): "
         "ImpactAcquireException: " << std::endl
         << "error code: " << e.getErrorCodeAsString() << std::endl
         << "message: " << e.what());
       ROS_WARN_STREAM("Retrying in " << _updateDeviceListTime << " [s]");
     }
-    catch (SystemException& e) {
+    catch (const SystemException& e) {
       ROS_WARN_STREAM("CameraManagerNode::updateDeviceList(): "
         "SystemException: " << std::endl
         << "message: " << e.what());
       ROS_WARN_STREAM("Retrying in " << _updateDeviceListTime << " [s]");
     }
-    catch (InvalidOperationException& e) {
+    catch (const InvalidOperationException& e) {
       ROS_WARN_STREAM("CameraManagerNode::updateDeviceList(): "
         "InvalidOperationException: " << std::endl
         << "message: " << e.what());

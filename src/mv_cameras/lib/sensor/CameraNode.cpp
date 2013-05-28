@@ -315,7 +315,7 @@ namespace mv {
           << ", timeout value too small?");
       }
     }
-    catch (ImpactAcquireException& e) {
+    catch (const ImpactAcquireException& e) {
       ROS_WARN_STREAM("CameraNode::process(): "
         "ImpactAcquireException: " << std::endl
         << "serial: " << _device->serial.readS() << std::endl
