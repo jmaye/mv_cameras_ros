@@ -1,3 +1,9 @@
+mv-cameras-ros (0.1-14) precise; urgency=low
+
+  * missing dependencies 
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Wed, 29 May 2013 07:55:57 +0000
+
 mv-cameras-ros (0.1-13) precise; urgency=low
 
   * distribution on PPA 
