@@ -1,3 +1,9 @@
+mv-cameras-ros (0.1-15) precise; urgency=low
+
+  * removing nullptr 
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Wed, 29 May 2013 14:42:52 +0000
+
 mv-cameras-ros (0.1-14) precise; urgency=low
 
   * missing dependencies 

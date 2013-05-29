@@ -175,7 +175,7 @@ namespace mv {
         subStr = ipAddress[i];
         i--;
       }
-      ipAddressInt[idx--] = std::stoi(subStr, nullptr, 16);
+      ipAddressInt[idx--] = std::stoi(subStr, 0, 16);
     }
     std::stringstream ipAddressSs;
     ipAddressSs << std::dec
@@ -206,7 +206,7 @@ namespace mv {
         subStr = deviceMACAddress[i];
         i--;
       }
-      deviceMACAddressInt[idx--] = std::stoi(subStr, nullptr, 16);
+      deviceMACAddressInt[idx--] = std::stoi(subStr, 0, 16);
     }
     std::stringstream deviceMACAddressSs;
     deviceMACAddressSs << std::hex << std::setfill('0') << std::setw(2)
