@@ -1,3 +1,9 @@
+mv-cameras-ros (0.1-17) precise; urgency=low
+
+  * make the node respawn 
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Thu, 30 May 2013 17:57:08 +0000
+
 mv-cameras-ros (0.1-16) precise; urgency=low
 
   * update of remake for mixing up ROS distributions 

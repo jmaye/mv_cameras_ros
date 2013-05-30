@@ -1,5 +1,5 @@
 <launch>
-  <node name="mv_cameras_manager" pkg="mv_cameras" type="mv_cameras_node" output="screen">
+  <node name="mv_cameras_manager" pkg="mv_cameras" type="mv_cameras_node" output="screen" respawn="true">
     <rosparam command="load" file="$(find mv_cameras)/etc/mv_cameras.yaml"/>
   </node>
 </launch>
