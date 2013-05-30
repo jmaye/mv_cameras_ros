@@ -1,3 +1,9 @@
+mv-cameras-ros (0.1-16) precise; urgency=low
+
+  * update of remake for mixing up ROS distributions 
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Thu, 30 May 2013 13:48:03 +0000
+
 mv-cameras-ros (0.1-15) precise; urgency=low
 
   * removing nullptr 
