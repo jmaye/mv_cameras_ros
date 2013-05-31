@@ -35,6 +35,9 @@
 
 #include "base/Thread.h"
 #include "base/Mutex.h"
+#include "mv_cameras/SetExposure.h"
+#include "mv_cameras/SetGain.h"
+#include "mv_cameras/SetFramerate.h"
 
 namespace mvIMPACT {
   namespace acquire {
@@ -114,6 +117,15 @@ namespace mv {
       const mvIMPACT::acquire::Request* request);
     /// Diagnose camera
     void diagnoseCamera(diagnostic_updater::DiagnosticStatusWrapper& status);
+    /// Set exposure service
+    bool setExposure(mv_cameras::SetExposure::Request& request,
+      mv_cameras::SetExposure::Response& response);
+    /// Set gain service
+    bool setGain(mv_cameras::SetGain::Request& request,
+      mv_cameras::SetGain::Response& response);
+    /// Set framerate service
+    bool setFramerate(mv_cameras::SetFramerate::Request& request,
+      mv_cameras::SetFramerate::Response& response);
     /** @}
       */
 
@@ -212,6 +224,12 @@ namespace mv {
     int _lastImageBytesPerPixel;
     /// Image gain setting
     double _gain;
+    /// Exposure service
+    ros::ServiceServer _setExposureService;
+    /// Gain service
+    ros::ServiceServer _setGainService;
+    /// Framerate service
+    ros::ServiceServer _setFramerateService;
     /** @}
       */
 

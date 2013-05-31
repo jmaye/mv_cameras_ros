@@ -88,26 +88,41 @@ namespace mv {
     setFeatures();
     initAcquisition();
     _updater.setHardwareID(_serial);
-    if (_imagePublishType == "snappy") {
-      _imageSnappyPublisher =
-        _nodeHandle.advertise<mv_cameras::ImageSnappyMsg>(
-        _serial + "/image_snappy", _queueDepth);
-      _imgFreq.reset(new diagnostic_updater::HeaderlessTopicDiagnostic(
-        _serial + "/image_snappy", _updater,
-        diagnostic_updater::FrequencyStatusParam(&_imgMinFreq, &_imgMaxFreq,
-        0.1, 10)));
-    }
-    else if (_imagePublishType == "raw") {
-      _imageRawPublisher = _imageTransport.advertise(_serial + "/image_raw",
-        _queueDepth);
-      _imgFreq.reset(new diagnostic_updater::HeaderlessTopicDiagnostic(
-        _serial + "/image_raw", _updater,
-        diagnostic_updater::FrequencyStatusParam(&_imgMinFreq, &_imgMaxFreq,
-        0.1, 10)));
-    }
-    else
-      ROS_WARN_STREAM("CameraNode::CameraNode(): "
-        "unsupported publisher type" << _imagePublishType);
+//    if (_imagePublishType == "snappy") {
+//      _imageSnappyPublisher =
+//        _nodeHandle.advertise<mv_cameras::ImageSnappyMsg>(
+//        _serial + "/image_snappy", _queueDepth);
+//      _imgFreq.reset(new diagnostic_updater::HeaderlessTopicDiagnostic(
+//        _serial + "/image_snappy", _updater,
+//        diagnostic_updater::FrequencyStatusParam(&_imgMinFreq, &_imgMaxFreq,
+//        0.1, 10)));
+//    }
+//    else if (_imagePublishType == "raw") {
+//      _imageRawPublisher = _imageTransport.advertise(_serial + "/image_raw",
+//        _queueDepth);
+//      _imgFreq.reset(new diagnostic_updater::HeaderlessTopicDiagnostic(
+//        _serial + "/image_raw", _updater,
+//        diagnostic_updater::FrequencyStatusParam(&_imgMinFreq, &_imgMaxFreq,
+//        0.1, 10)));
+//    }
+//    else
+//      ROS_WARN_STREAM("CameraNode::CameraNode(): "
+//        "unsupported publisher type" << _imagePublishType);
+    _imageSnappyPublisher =
+      _nodeHandle.advertise<mv_cameras::ImageSnappyMsg>(
+      _serial + "/image_snappy", _queueDepth);
+    _imgFreq.reset(new diagnostic_updater::HeaderlessTopicDiagnostic(
+      _serial + "/image_snappy", _updater,
+      diagnostic_updater::FrequencyStatusParam(&_imgMinFreq, &_imgMaxFreq,
+      0.1, 10)));
+    _imageRawPublisher = _imageTransport.advertise(_serial + "/image_raw",
+      _queueDepth);
+    _setExposureService = _nodeHandle.advertiseService(
+      _serial + "/set_exposure", &CameraNode::setExposure, this);
+    _setGainService = _nodeHandle.advertiseService(_serial + "/set_gain",
+      &CameraNode::setGain, this);
+    _setFramerateService = _nodeHandle.advertiseService(
+      _serial + "/set_framerate", &CameraNode::setFramerate, this);
     _updater.add(_serial + " Camera status", this, &CameraNode::diagnoseCamera);
     _updater.force_update();
   }
@@ -231,7 +246,7 @@ namespace mv {
 
   void CameraNode::publishImage(const ros::Time& timestamp,
       const Request* request) {
-    if (_imagePublishType == "snappy") {
+//    if (_imagePublishType == "snappy") {
       mv_cameras::ImageSnappyMsgPtr imageSnappyMsg(
         new mv_cameras::ImageSnappyMsg);
       imageSnappyMsg->header.stamp = timestamp;
@@ -239,6 +254,7 @@ namespace mv {
       imageSnappyMsg->header.seq = request->infoFrameNr.read();
       imageSnappyMsg->width = request->imageWidth.read();
       imageSnappyMsg->height = request->imageHeight.read();
+      imageSnappyMsg->hwTimestamp = request->infoTimeStamp_us.read();
       std::string imageSnappy;
       snappy::Compress(reinterpret_cast<char*>(request->imageData.read()),
         request->imageSize.read(), &imageSnappy);
@@ -246,8 +262,8 @@ namespace mv {
       std::copy(imageSnappy.begin(), imageSnappy.end(),
         imageSnappyMsg->data.begin());
       _imageSnappyPublisher.publish(imageSnappyMsg);
-    }
-    else if (_imagePublishType == "raw") {
+//    }
+//    else if (_imagePublishType == "raw") {
       sensor_msgs::ImagePtr imageRawMsg(new sensor_msgs::Image);
       imageRawMsg->header.stamp = timestamp;
       imageRawMsg->header.frame_id = _frameId;
@@ -262,7 +278,7 @@ namespace mv {
         request->imageSize.read(),
         imageRawMsg->data.begin());
       _imageRawPublisher.publish(imageRawMsg);
-    }
+//    }
     _imgFreq->tick();
     _updater.update();
   }
@@ -492,6 +508,90 @@ namespace mv {
       status.summaryf(diagnostic_msgs::DiagnosticStatus::WARN,
         "Target framerate not met (desired: %f, actual: %f).",
         _framerate, framesPerSecond);
+  }
+
+  bool CameraNode::setExposure(mv_cameras::SetExposure::Request& request,
+      mv_cameras::SetExposure::Response& response) {
+    Mutex::ScopedLock lock(_mutex);
+    try {
+      _exposureTime = request.exposure;
+      AcquisitionControl ac(_device);
+      ac.exposureTime.write(_exposureTime);
+      if (_exposureTime > 1e6 / _framerate) {
+        ROS_WARN_STREAM("CameraNode::setExposure(): "
+          "exposure time is bigger than frame duration");
+        response.response = true;
+        response.message = "Exposure time is bigger than frame duration";
+      }
+      else {
+        response.response = true;
+        response.message = "Success";
+      }
+    }
+    catch (const ImpactAcquireException& e) {
+      ROS_WARN_STREAM("CameraNode::setExposure(): "
+        "ImpactAcquireException: " << std::endl
+        << "serial: " << _device->serial.readS() << std::endl
+        << "error code: " << e.getErrorCodeAsString() << std::endl
+        << "message: " << e.what());
+      response.response = false;
+      response.message = e.what();
+    }
+    return true;
+  }
+
+  bool CameraNode::setGain(mv_cameras::SetGain::Request& request,
+      mv_cameras::SetGain::Response& response) {
+    Mutex::ScopedLock lock(_mutex);
+    try {
+      _gain = request.gain;
+      AnalogControl anc(_device);
+      anc.gain.write(_gain);
+      response.response = true;
+      response.message = "Success";
+    }
+    catch (const ImpactAcquireException& e) {
+      ROS_WARN_STREAM("CameraNode::setGain(): "
+        "ImpactAcquireException: " << std::endl
+        << "serial: " << _device->serial.readS() << std::endl
+        << "error code: " << e.getErrorCodeAsString() << std::endl
+        << "message: " << e.what());
+      response.response = false;
+      response.message = e.what();
+    }
+    return true;
+  }
+
+  bool CameraNode::setFramerate(mv_cameras::SetFramerate::Request& request,
+      mv_cameras::SetFramerate::Response& response) {
+    Mutex::ScopedLock lock(_mutex);
+    try {
+      _framerate = request.framerate;
+      const double frameDuration = 1e6 / _framerate;
+      CounterAndTimerControl catcMaster(_device);
+      catcMaster.timerSelector.writeS("Timer1");
+      catcMaster.timerDuration.write(frameDuration);
+      if (_exposureTime > 1e6 / _framerate) {
+        ROS_WARN_STREAM("CameraNode::setFramerate(): "
+          "exposure time is bigger than frame duration");
+        response.response = true;
+        response.message = "Exposure time is bigger than frame duration";
+      }
+      else {
+        response.response = true;
+        response.message = "Success";
+      }
+    }
+    catch (const ImpactAcquireException& e) {
+      ROS_WARN_STREAM("CameraNode::setFramerate(): "
+        "ImpactAcquireException: " << std::endl
+        << "serial: " << _device->serial.readS() << std::endl
+        << "error code: " << e.getErrorCodeAsString() << std::endl
+        << "message: " << e.what());
+      response.response = false;
+      response.message = e.what();
+    }
+    return true;
   }
 
 }

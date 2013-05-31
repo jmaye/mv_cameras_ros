@@ -1,3 +1,9 @@
+mv-cameras-ros (0.1-18) precise; urgency=low
+
+  * adding services for gain, exposure, and framerate 
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Fri, 31 May 2013 16:47:09 +0000
+
 mv-cameras-ros (0.1-17) precise; urgency=low
 
   * make the node respawn 
