@@ -88,26 +88,6 @@ namespace mv {
     setFeatures();
     initAcquisition();
     _updater.setHardwareID(_serial);
-//    if (_imagePublishType == "snappy") {
-//      _imageSnappyPublisher =
-//        _nodeHandle.advertise<mv_cameras::ImageSnappyMsg>(
-//        _serial + "/image_snappy", _queueDepth);
-//      _imgFreq.reset(new diagnostic_updater::HeaderlessTopicDiagnostic(
-//        _serial + "/image_snappy", _updater,
-//        diagnostic_updater::FrequencyStatusParam(&_imgMinFreq, &_imgMaxFreq,
-//        0.1, 10)));
-//    }
-//    else if (_imagePublishType == "raw") {
-//      _imageRawPublisher = _imageTransport.advertise(_serial + "/image_raw",
-//        _queueDepth);
-//      _imgFreq.reset(new diagnostic_updater::HeaderlessTopicDiagnostic(
-//        _serial + "/image_raw", _updater,
-//        diagnostic_updater::FrequencyStatusParam(&_imgMinFreq, &_imgMaxFreq,
-//        0.1, 10)));
-//    }
-//    else
-//      ROS_WARN_STREAM("CameraNode::CameraNode(): "
-//        "unsupported publisher type" << _imagePublishType);
     _imageSnappyPublisher =
       _nodeHandle.advertise<mv_cameras::ImageSnappyMsg>(
       _serial + "/image_snappy", _queueDepth);
@@ -246,39 +226,35 @@ namespace mv {
 
   void CameraNode::publishImage(const ros::Time& timestamp,
       const Request* request) {
-//    if (_imagePublishType == "snappy") {
-      mv_cameras::ImageSnappyMsgPtr imageSnappyMsg(
-        new mv_cameras::ImageSnappyMsg);
-      imageSnappyMsg->header.stamp = timestamp;
-      imageSnappyMsg->header.frame_id = _frameId;
-      imageSnappyMsg->header.seq = request->infoFrameNr.read();
-      imageSnappyMsg->width = request->imageWidth.read();
-      imageSnappyMsg->height = request->imageHeight.read();
-      imageSnappyMsg->hwTimestamp = request->infoTimeStamp_us.read();
-      std::string imageSnappy;
-      snappy::Compress(reinterpret_cast<char*>(request->imageData.read()),
-        request->imageSize.read(), &imageSnappy);
-      imageSnappyMsg->data.resize(imageSnappy.size());
-      std::copy(imageSnappy.begin(), imageSnappy.end(),
-        imageSnappyMsg->data.begin());
-      _imageSnappyPublisher.publish(imageSnappyMsg);
-//    }
-//    else if (_imagePublishType == "raw") {
-      sensor_msgs::ImagePtr imageRawMsg(new sensor_msgs::Image);
-      imageRawMsg->header.stamp = timestamp;
-      imageRawMsg->header.frame_id = _frameId;
-      imageRawMsg->header.seq = request->infoFrameNr.read();
-      imageRawMsg->height = request->imageHeight.read();
-      imageRawMsg->width = request->imageWidth.read();
-      imageRawMsg->step = request->imageLinePitch.read();
-      imageRawMsg->encoding = sensor_msgs::image_encodings::MONO8;
-      imageRawMsg->data.resize(request->imageSize.read());
-      std::copy(reinterpret_cast<char*>(request->imageData.read()),
-        reinterpret_cast<char*>(request->imageData.read()) +
-        request->imageSize.read(),
-        imageRawMsg->data.begin());
-      _imageRawPublisher.publish(imageRawMsg);
-//    }
+    mv_cameras::ImageSnappyMsgPtr imageSnappyMsg(
+      new mv_cameras::ImageSnappyMsg);
+    imageSnappyMsg->header.stamp = timestamp;
+    imageSnappyMsg->header.frame_id = _frameId;
+    imageSnappyMsg->header.seq = request->infoFrameNr.read();
+    imageSnappyMsg->width = request->imageWidth.read();
+    imageSnappyMsg->height = request->imageHeight.read();
+    imageSnappyMsg->hwTimestamp = request->infoTimeStamp_us.read();
+    std::string imageSnappy;
+    snappy::Compress(reinterpret_cast<char*>(request->imageData.read()),
+      request->imageSize.read(), &imageSnappy);
+    imageSnappyMsg->data.resize(imageSnappy.size());
+    std::copy(imageSnappy.begin(), imageSnappy.end(),
+      imageSnappyMsg->data.begin());
+    _imageSnappyPublisher.publish(imageSnappyMsg);
+    sensor_msgs::ImagePtr imageRawMsg(new sensor_msgs::Image);
+    imageRawMsg->header.stamp = timestamp;
+    imageRawMsg->header.frame_id = _frameId;
+    imageRawMsg->header.seq = request->infoFrameNr.read();
+    imageRawMsg->height = request->imageHeight.read();
+    imageRawMsg->width = request->imageWidth.read();
+    imageRawMsg->step = request->imageLinePitch.read();
+    imageRawMsg->encoding = sensor_msgs::image_encodings::MONO8;
+    imageRawMsg->data.resize(request->imageSize.read());
+    std::copy(reinterpret_cast<char*>(request->imageData.read()),
+      reinterpret_cast<char*>(request->imageData.read()) +
+      request->imageSize.read(),
+      imageRawMsg->data.begin());
+    _imageRawPublisher.publish(imageRawMsg);
     _imgFreq->tick();
     _updater.update();
   }
@@ -440,9 +416,6 @@ namespace mv {
       _imgMinFreq, _framerate - _fpsTolerance);
     _nodeHandle.param<double>(_device->serial.readS() + "/img_max_freq",
       _imgMaxFreq, _framerate + _fpsTolerance);
-    _nodeHandle.param<std::string>(
-      _device->serial.readS() + "/image_publish_type",
-      _imagePublishType, "snappy");
   }
 
   void CameraNode::diagnoseCamera(diagnostic_updater::DiagnosticStatusWrapper&

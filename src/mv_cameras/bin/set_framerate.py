@@ -22,9 +22,9 @@ import sys, roslib, rospy
 from mv_cameras.srv import *
 
 def setFramerate(serial, framerate):
-  rospy.wait_for_service("/mv_cameras/" + serial + "/set_framerate")
+  rospy.wait_for_service("/mv_cameras_manager/" + serial + "/set_framerate")
   try:
-    request = rospy.ServiceProxy("/mv_cameras/" + serial + "/set_framerate",
+    request = rospy.ServiceProxy("/mv_cameras_manager/" + serial + "/set_framerate",
       SetFramerate)
     response = request(framerate)
     if response.response:

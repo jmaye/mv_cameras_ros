@@ -22,9 +22,9 @@ import sys, roslib, rospy
 from mv_cameras.srv import *
 
 def setExposure(serial, exposure):
-  rospy.wait_for_service("/mv_cameras/" + serial + "/set_exposure")
+  rospy.wait_for_service("/mv_cameras_manager/" + serial + "/set_exposure")
   try:
-    request = rospy.ServiceProxy("/mv_cameras/" + serial + "/set_exposure",
+    request = rospy.ServiceProxy("/mv_cameras_manager/" + serial + "/set_exposure",
       SetExposure)
     response = request(exposure)
     if response.response:

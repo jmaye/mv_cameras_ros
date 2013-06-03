@@ -194,8 +194,6 @@ namespace mv {
     double _imgMaxFreq;
     /// FPS tolerance between desired and actual
     double _fpsTolerance;
-    /// Image publish type: snappy or raw
-    std::string _imagePublishType;
     /// Last frame software timestamp
     double _lastFrameSwTime;
     /// Last frame number
