@@ -334,7 +334,19 @@ namespace mv {
       catcMaster.timerDelay.write(0.);
       catcMaster.timerDuration.write(1000.);
       catcMaster.timerTriggerSource.writeS("Timer1End");
+      // counter 1 and 2 are used for resetting timestamps
+      catcMaster.counterSelector.writeS("Counter1");
+      catcMaster.counterEventSource.writeS("Timer2End");
+      catcMaster.counterTriggerSource.writeS("Timer1End");
+      catcMaster.counterDuration.write(150);
+      catcMaster.counterResetSource.writeS("Counter1End");
+      catcMaster.counterSelector.writeS("Counter2");
+      catcMaster.counterEventSource.writeS("Timer1End");
+      catcMaster.counterTriggerSource.writeS("Counter1End");
+      catcMaster.counterDuration.write(1);
+      catcMaster.counterResetSource.writeS("Off");
       // set digital I/O for the synchronization
+      // line 0 goes to line 4 and line 1 goes to line 5
       DigitalIOControl io(_device);
       io.lineSelector.writeS("Line0");
       io.lineSource.writeS( "Timer2Active" );
@@ -346,6 +358,11 @@ namespace mv {
     ac.triggerSelector.writeS("FrameStart");
     ac.triggerMode.writeS("On");
     ac.triggerSource.writeS("Line4");
+    ac.triggerActivation.writeS("RisingEdge");
+    // trigger a timestamp reset on every pulse on line 5, i.e. every 150 frames
+    ac.triggerSelector.writeS("mvTimestampReset");
+    ac.triggerMode.writeS("On");
+    ac.triggerSource.writeS("Line5");
     ac.triggerActivation.writeS("RisingEdge");
   }
 

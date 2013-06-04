@@ -1,3 +1,9 @@
+mv-cameras-ros (0.1-20) precise; urgency=low
+
+  * resetting timestamps 
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Tue, 04 Jun 2013 22:25:57 +0000
+
 mv-cameras-ros (0.1-19) precise; urgency=low
 
   * bugs corrections
