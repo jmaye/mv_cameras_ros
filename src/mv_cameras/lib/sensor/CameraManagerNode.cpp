@@ -19,6 +19,7 @@
 #include "sensor/CameraManagerNode.h"
 
 #include <sstream>
+#include <vector>
 
 #include <mvIMPACT_CPP/mvIMPACT_acquire.h>
 
@@ -47,6 +48,12 @@ namespace mv {
       &diagnostic_updater::FrequencyStatus::run);
     _updater.add("Camera manager", this,
       &CameraManagerNode::diagnoseCameraManager);
+    _setExposuresService = _nodeHandle.advertiseService("set_exposures",
+      &CameraManagerNode::setExposures, this);
+    _setGainsService = _nodeHandle.advertiseService("set_gains",
+      &CameraManagerNode::setGains, this);
+    _setFrameratesService = _nodeHandle.advertiseService("set_framerates",
+      &CameraManagerNode::setFramerates, this);
     _updater.force_update();
   }
 
@@ -146,6 +153,183 @@ namespace mv {
       keySs << "Camera " << idx++;
       status.add(keySs.str(), it->first);
     }
+  }
+
+  bool CameraManagerNode::setExposures(mv_cameras::SetExposure::Request&
+      request, mv_cameras::SetExposure::Response& response) {
+    const double exposureTime = request.exposure;
+    std::vector<std::string> camSuccess;
+    std::vector<std::string> camFailure;
+    std::unordered_map<std::string, std::string> camErrors;
+    for (auto it = _cameraNodes.begin(); it != _cameraNodes.end(); ++it) {
+      if (it->second->getState().read() == dsPresent) {
+        ros::ServiceClient client =
+          _nodeHandle.serviceClient<mv_cameras::SetExposure>(
+          "/mv_cameras_manager/" + it->first + "/set_exposure");
+        mv_cameras::SetExposure srv;
+        srv.request.exposure = exposureTime;
+        if (client.call(srv)) {
+          if (!srv.response.response) {
+            camFailure.push_back(it->first);
+            camErrors[it->first] = srv.response.message;
+          }
+          else {
+            camSuccess.push_back(it->first);
+          }
+        }
+        else {
+          camFailure.push_back(it->first);
+          camErrors[it->first] = srv.response.message;
+        }
+      }
+    }
+    std::stringstream camSuccessSs;
+    for (auto it = camSuccess.cbegin(); it != camSuccess.cend(); ++it)
+      camSuccessSs << *it << " ";
+    std::stringstream camFailureSs;
+    for (auto it = camFailure.cbegin(); it != camFailure.cend(); ++it)
+      camFailureSs << *it << ": " << camErrors[*it] << std::endl;
+    if (camFailure.size() == 0 && camSuccess.size() == 0) {
+      response.response = false;
+      response.message = "No cameras connected";
+    }
+    else if (camFailure.size() == 0) {
+      response.response = true;
+      response.message = "Exposure successfully set on: " + camSuccessSs.str();
+    }
+    else if (camSuccess.size() > 0) {
+      response.response = false;
+      std::stringstream messageSs;
+      messageSs << "Exposure successfully set on: " + camSuccessSs.str()
+        << std::endl
+        << "Exposure failed on: " << std::endl << camFailureSs.str();
+      response.message = messageSs.str();
+    }
+    else {
+      response.response = false;
+      std::stringstream messageSs;
+      messageSs << "Exposure failed on: " << std::endl << camFailureSs.str();
+      response.message = messageSs.str();
+    }
+    return true;
+  }
+
+  bool CameraManagerNode::setGains(mv_cameras::SetGain::Request& request,
+      mv_cameras::SetGain::Response& response) {
+    const double gain = request.gain;
+    std::vector<std::string> camSuccess;
+    std::vector<std::string> camFailure;
+    std::unordered_map<std::string, std::string> camErrors;
+    for (auto it = _cameraNodes.begin(); it != _cameraNodes.end(); ++it) {
+      if (it->second->getState().read() == dsPresent) {
+        ros::ServiceClient client =
+          _nodeHandle.serviceClient<mv_cameras::SetGain>(
+          "/mv_cameras_manager/" + it->first + "/set_gain");
+        mv_cameras::SetGain srv;
+        srv.request.gain = gain;
+        if (client.call(srv)) {
+          if (!srv.response.response) {
+            camFailure.push_back(it->first);
+            camErrors[it->first] = srv.response.message;
+          }
+          else {
+            camSuccess.push_back(it->first);
+          }
+        }
+        else {
+          camFailure.push_back(it->first);
+          camErrors[it->first] = srv.response.message;
+        }
+      }
+    }
+    std::stringstream camSuccessSs;
+    for (auto it = camSuccess.cbegin(); it != camSuccess.cend(); ++it)
+      camSuccessSs << *it << " ";
+    std::stringstream camFailureSs;
+    for (auto it = camFailure.cbegin(); it != camFailure.cend(); ++it)
+      camFailureSs << *it << ": " << camErrors[*it] << std::endl;
+    if (camFailure.size() == 0 && camSuccess.size() == 0) {
+      response.response = false;
+      response.message = "No cameras connected";
+    }
+    else if (camFailure.size() == 0) {
+      response.response = true;
+      response.message = "Gain successfully set on: " + camSuccessSs.str();
+    }
+    else if (camSuccess.size() > 0) {
+      response.response = false;
+      std::stringstream messageSs;
+      messageSs << "Gain successfully set on: " + camSuccessSs.str()
+        << std::endl
+        << "Gain failed on: " << std::endl << camFailureSs.str();
+      response.message = messageSs.str();
+    }
+    else {
+      response.response = false;
+      std::stringstream messageSs;
+      messageSs << "Gain failed on: " << std::endl << camFailureSs.str();
+      response.message = messageSs.str();
+    }
+    return true;
+  }
+
+  bool CameraManagerNode::setFramerates(mv_cameras::SetFramerate::Request&
+      request, mv_cameras::SetFramerate::Response& response) {
+    const double framerate = request.framerate;
+    std::vector<std::string> camSuccess;
+    std::vector<std::string> camFailure;
+    std::unordered_map<std::string, std::string> camErrors;
+    for (auto it = _cameraNodes.begin(); it != _cameraNodes.end(); ++it) {
+      if (it->second->getState().read() == dsPresent) {
+        ros::ServiceClient client =
+          _nodeHandle.serviceClient<mv_cameras::SetFramerate>(
+          "/mv_cameras_manager/" + it->first + "/set_framerate");
+        mv_cameras::SetFramerate srv;
+        srv.request.framerate = framerate;
+        if (client.call(srv)) {
+          if (!srv.response.response) {
+            camFailure.push_back(it->first);
+            camErrors[it->first] = srv.response.message;
+          }
+          else {
+            camSuccess.push_back(it->first);
+          }
+        }
+        else {
+          camFailure.push_back(it->first);
+          camErrors[it->first] = srv.response.message;
+        }
+      }
+    }
+    std::stringstream camSuccessSs;
+    for (auto it = camSuccess.cbegin(); it != camSuccess.cend(); ++it)
+      camSuccessSs << *it << " ";
+    std::stringstream camFailureSs;
+    for (auto it = camFailure.cbegin(); it != camFailure.cend(); ++it)
+      camFailureSs << *it << ": " << camErrors[*it] << std::endl;
+    if (camFailure.size() == 0 && camSuccess.size() == 0) {
+      response.response = false;
+      response.message = "No cameras connected";
+    }
+    else if (camFailure.size() == 0) {
+      response.response = true;
+      response.message = "Framerate successfully set on: " + camSuccessSs.str();
+    }
+    else if (camSuccess.size() > 0) {
+      response.response = false;
+      std::stringstream messageSs;
+      messageSs << "Framerate successfully set on: " + camSuccessSs.str()
+        << std::endl
+        << "Framerate failed on: " << std::endl << camFailureSs.str();
+      response.message = messageSs.str();
+    }
+    else {
+      response.response = false;
+      std::stringstream messageSs;
+      messageSs << "Framerate failed on: " << std::endl << camFailureSs.str();
+      response.message = messageSs.str();
+    }
+    return true;
   }
 
 }

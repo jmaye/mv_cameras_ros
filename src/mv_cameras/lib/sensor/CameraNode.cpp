@@ -424,7 +424,7 @@ namespace mv {
     _nodeHandle.param<double>(_device->serial.readS() + "/retry_timeout",
       _retryTimeout, 1);
     _nodeHandle.param<std::string>(_device->serial.readS() +
-      "/frame_id", _frameId, _device->serial.readS());
+      "/frame_id", _frameId, "/" + _device->serial.readS() + "_link");
     _nodeHandle.param<int>(_device->serial.readS() + "/queue_depth",
       _queueDepth, 100);
     _nodeHandle.param<double>(_device->serial.readS() + "/fps_tolerance",

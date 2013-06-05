@@ -1,3 +1,10 @@
+mv-cameras-ros (0.1-21) precise; urgency=low
+
+  * changing frame_id
+    adding services acting on all cameras
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Wed, 05 Jun 2013 18:52:42 +0000
+
 mv-cameras-ros (0.1-20) precise; urgency=low
 
   * resetting timestamps 

@@ -24,7 +24,8 @@ from mv_cameras.srv import *
 def setGain(serial, gain):
   rospy.wait_for_service("/mv_cameras_manager/" + serial + "/set_gain")
   try:
-    request = rospy.ServiceProxy("/mv_cameras_manager/" + serial + "/set_gain", SetGain)
+    request = rospy.ServiceProxy(
+      "/mv_cameras_manager/" + serial + "/set_gain", SetGain)
     response = request(gain)
     if response.response:
       print "Gain for %s set to: %f" %(serial, gain)
