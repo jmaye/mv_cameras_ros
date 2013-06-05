@@ -1,3 +1,9 @@
+mv-cameras-ros (0.1-22) precise; urgency=low
+
+  * forgot to include some files 
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Wed, 05 Jun 2013 18:53:34 +0000
+
 mv-cameras-ros (0.1-21) precise; urgency=low
 
   * changing frame_id
