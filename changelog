@@ -1,3 +1,9 @@
+mv-cameras-ros (0.1-24) precise; urgency=low
+
+  * groovy distribution ready 
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Thu, 06 Jun 2013 10:40:41 +0000
+
 mv-cameras-ros (0.1-23) precise; urgency=low
 
   * improving python scripts 
