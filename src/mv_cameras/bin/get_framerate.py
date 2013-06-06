@@ -21,27 +21,31 @@
 import sys, roslib, rospy
 from mv_cameras.srv import *
 
-def setFramerates(framerate):
-  rospy.wait_for_service("/mv_cameras_manager/set_framerates")
+def getCameras():
+  rospy.wait_for_service("/mv_cameras_manager/get_cameras")
   try:
-    request = rospy.ServiceProxy("/mv_cameras_manager/set_framerates",
-      SetFramerate)
-    response = request(framerate)
-    if response.response:
-      print "Framerates set to: %f" %(framerate)
-    else:
-      print "Failed to set framerates to: %f" %(framerate)
-      print "Reason: %s" % response.message
+    request = rospy.ServiceProxy("/mv_cameras_manager/get_cameras", GetCameras)
+    response = request()
+    return response.serials
   except rospy.ServiceException, exception:
-    print "SetFramerate request failed: %s" % exception
+    print "GetCameras request failed: %s" % exception
+    return response.serials
 
-def usage():
-  return "%s FRAMERATE" % sys.argv[0]
+def getFramerate(serial):
+  rospy.wait_for_service("/mv_cameras_manager/" + serial + "/get_framerate")
+  try:
+    request = rospy.ServiceProxy(
+      "/mv_cameras_manager/" + serial + "/get_framerate", GetFramerate)
+    response = request()
+    print "Framerate for %s is: %f" %(serial, response.framerate)
+  except rospy.ServiceException, exception:
+    print "GetFramerate request failed for %s: %s" %(serial, exception)
 
 if __name__ == "__main__":
   if len(sys.argv) == 2:
-    framerate = float(sys.argv[1])
+    serial = str(sys.argv[1])
+    getFramerate(serial)
   else:
-    print usage()
-    sys.exit(1)
-  setFramerates(framerate)
+    serials = getCameras()
+    for i in range(len(serials)):
+      getFramerate(serials[i])

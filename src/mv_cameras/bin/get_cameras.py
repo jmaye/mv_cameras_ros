@@ -21,27 +21,15 @@
 import sys, roslib, rospy
 from mv_cameras.srv import *
 
-def setExposures(exposure):
-  rospy.wait_for_service("/mv_cameras_manager/set_exposures")
+def getCameras():
+  rospy.wait_for_service("/mv_cameras_manager/get_cameras")
   try:
-    request = rospy.ServiceProxy("/mv_cameras_manager/set_exposures",
-      SetExposure)
-    response = request(exposure)
-    if response.response:
-      print "Exposures set to: %f" %(exposure)
-    else:
-      print "Failed to set exposures to: %f" %(exposure)
-      print "Reason: %s" % response.message
+    request = rospy.ServiceProxy("/mv_cameras_manager/get_cameras", GetCameras)
+    response = request()
+    for i in range(len(response.serials)):
+      print response.serials[i]
   except rospy.ServiceException, exception:
-    print "SetExposure request failed: %s" % exception
-
-def usage():
-  return "%s EXPOSURE" % sys.argv[0]
+    print "GetCameras request failed: %s" % exception
 
 if __name__ == "__main__":
-  if len(sys.argv) == 2:
-    exposure = float(sys.argv[1])
-  else:
-    print usage()
-    sys.exit(1)
-  setExposures(exposure)
+  getCameras()

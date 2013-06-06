@@ -32,9 +32,7 @@
 #include <diagnostic_updater/diagnostic_updater.h>
 #include <diagnostic_updater/publisher.h>
 
-#include "mv_cameras/SetExposure.h"
-#include "mv_cameras/SetGain.h"
-#include "mv_cameras/SetFramerate.h"
+#include "mv_cameras/GetCameras.h"
 
 namespace mvIMPACT {
   namespace acquire {
@@ -97,15 +95,9 @@ namespace mv {
     /// Diagnose camera manager
     void diagnoseCameraManager(diagnostic_updater::DiagnosticStatusWrapper&
       status);
-    /// Set exposures service
-    bool setExposures(mv_cameras::SetExposure::Request& request,
-      mv_cameras::SetExposure::Response& response);
-    /// Set gains service
-    bool setGains(mv_cameras::SetGain::Request& request,
-      mv_cameras::SetGain::Response& response);
-    /// Set framerates service
-    bool setFramerates(mv_cameras::SetFramerate::Request& request,
-      mv_cameras::SetFramerate::Response& response);
+    /// Get cameras service
+    bool getCameras(mv_cameras::GetCameras::Request& request,
+      mv_cameras::GetCameras::Response& response);
     /** @}
       */
 
@@ -132,12 +124,8 @@ namespace mv {
     double _discoverMinFreq;
     /// Discover devices maximum frequency
     double _discoverMaxFreq;
-    /// Exposures service
-    ros::ServiceServer _setExposuresService;
-    /// Gains service
-    ros::ServiceServer _setGainsService;
-    /// Framerates service
-    ros::ServiceServer _setFrameratesService;
+    /// Get cameras service
+    ros::ServiceServer _getCamerasService;
     /** @}
       */
 

@@ -21,26 +21,31 @@
 import sys, roslib, rospy
 from mv_cameras.srv import *
 
-def setGains(gain):
-  rospy.wait_for_service("/mv_cameras_manager/set_gains")
+def getCameras():
+  rospy.wait_for_service("/mv_cameras_manager/get_cameras")
   try:
-    request = rospy.ServiceProxy("/mv_cameras_manager/set_gains", SetGain)
-    response = request(gain)
-    if response.response:
-      print "Gains set to: %f" %(gain)
-    else:
-      print "Failed to set gains to: %f" %(gain)
-      print "Reason: %s" % response.message
+    request = rospy.ServiceProxy("/mv_cameras_manager/get_cameras", GetCameras)
+    response = request()
+    return response.serials
   except rospy.ServiceException, exception:
-    print "SetGain request failed: %s" % exception
+    print "GetCameras request failed: %s" % exception
+    return response.serials
 
-def usage():
-  return "%s GAIN" % sys.argv[0]
+def getExposure(serial):
+  rospy.wait_for_service("/mv_cameras_manager/" + serial + "/get_exposure")
+  try:
+    request = rospy.ServiceProxy(
+      "/mv_cameras_manager/" + serial + "/get_exposure", GetExposure)
+    response = request()
+    print "Exposure for %s is: %f" %(serial, response.exposure)
+  except rospy.ServiceException, exception:
+    print "GetExposure request failed for %s: %s" %(serial, exception)
 
 if __name__ == "__main__":
   if len(sys.argv) == 2:
-    gain = float(sys.argv[1])
+    serial = str(sys.argv[1])
+    getExposure(serial)
   else:
-    print usage()
-    sys.exit(1)
-  setGains(gain)
+    serials = getCameras()
+    for i in range(len(serials)):
+      getExposure(serials[i])

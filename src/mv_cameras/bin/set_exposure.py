@@ -21,6 +21,16 @@
 import sys, roslib, rospy
 from mv_cameras.srv import *
 
+def getCameras():
+  rospy.wait_for_service("/mv_cameras_manager/get_cameras")
+  try:
+    request = rospy.ServiceProxy("/mv_cameras_manager/get_cameras", GetCameras)
+    response = request()
+    return response.serials
+  except rospy.ServiceException, exception:
+    print "GetCameras request failed: %s" % exception
+    return response.serials
+
 def setExposure(serial, exposure):
   rospy.wait_for_service("/mv_cameras_manager/" + serial + "/set_exposure")
   try:
@@ -33,16 +43,21 @@ def setExposure(serial, exposure):
       print "Failed to set exposure for %s to: %f" %(serial, exposure)
       print "Reason: %s" % response.message
   except rospy.ServiceException, exception:
-    print "SetExposure request failed: %s" % exception
+    print "SetExposure request failed for %s: %s" %(serial, exception)
 
 def usage():
-  return "%s SERIAL EXPOSURE" % sys.argv[0]
+  return "%s SERIAL EXPOSURE or EXPOSURE" % sys.argv[0]
 
 if __name__ == "__main__":
   if len(sys.argv) == 3:
     serial = str(sys.argv[1])
     exposure = float(sys.argv[2])
+    setExposure(serial, exposure)
+  elif len(sys.argv) == 2:
+    exposure = float(sys.argv[1])
+    serials = getCameras()
+    for i in range(len(serials)):
+      setExposure(serials[i], exposure)
   else:
     print usage()
     sys.exit(1)
-  setExposure(serial, exposure)

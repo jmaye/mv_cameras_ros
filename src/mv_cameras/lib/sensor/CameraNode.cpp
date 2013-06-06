@@ -103,6 +103,12 @@ namespace mv {
       &CameraNode::setGain, this);
     _setFramerateService = _nodeHandle.advertiseService(
       _serial + "/set_framerate", &CameraNode::setFramerate, this);
+    _getExposureService = _nodeHandle.advertiseService(
+      _serial + "/get_exposure", &CameraNode::getExposure, this);
+    _getGainService = _nodeHandle.advertiseService(_serial + "/get_gain",
+      &CameraNode::getGain, this);
+    _getFramerateService = _nodeHandle.advertiseService(
+      _serial + "/get_framerate", &CameraNode::getFramerate, this);
     _updater.add(_serial + " Camera status", this, &CameraNode::diagnoseCamera);
     _updater.force_update();
   }
@@ -556,20 +562,26 @@ namespace mv {
       mv_cameras::SetFramerate::Response& response) {
     Mutex::ScopedLock lock(_mutex);
     try {
-      _framerate = request.framerate;
-      const double frameDuration = 1e6 / _framerate;
-      CounterAndTimerControl catcMaster(_device);
-      catcMaster.timerSelector.writeS("Timer1");
-      catcMaster.timerDuration.write(frameDuration);
-      if (_exposureTime > 1e6 / _framerate) {
-        ROS_WARN_STREAM("CameraNode::setFramerate(): "
-          "exposure time is bigger than frame duration");
-        response.response = true;
-        response.message = "Exposure time is bigger than frame duration";
+      if (_isMaster) {
+        _framerate = request.framerate;
+        const double frameDuration = 1e6 / _framerate;
+        CounterAndTimerControl catcMaster(_device);
+        catcMaster.timerSelector.writeS("Timer1");
+        catcMaster.timerDuration.write(frameDuration);
+        if (_exposureTime > 1e6 / _framerate) {
+          ROS_WARN_STREAM("CameraNode::setFramerate(): "
+            "exposure time is bigger than frame duration");
+          response.response = true;
+          response.message = "Exposure time is bigger than frame duration";
+        }
+        else {
+          response.response = true;
+          response.message = "Success";
+        }
       }
       else {
-        response.response = true;
-        response.message = "Success";
+        response.response = false;
+        response.message = "Framerate can only be set on the master camera";
       }
     }
     catch (const ImpactAcquireException& e) {
@@ -581,6 +593,27 @@ namespace mv {
       response.response = false;
       response.message = e.what();
     }
+    return true;
+  }
+
+  bool CameraNode::getExposure(mv_cameras::GetExposure::Request& request,
+      mv_cameras::GetExposure::Response& response) {
+    Mutex::ScopedLock lock(_mutex);
+    response.exposure = _exposureTime;
+    return true;
+  }
+
+  bool CameraNode::getGain(mv_cameras::GetGain::Request& request,
+      mv_cameras::GetGain::Response& response) {
+    Mutex::ScopedLock lock(_mutex);
+    response.gain = _gain;
+    return true;
+  }
+
+  bool CameraNode::getFramerate(mv_cameras::GetFramerate::Request& request,
+      mv_cameras::GetFramerate::Response& response) {
+    Mutex::ScopedLock lock(_mutex);
+    response.framerate = _framerate;
     return true;
   }
 

@@ -1,3 +1,9 @@
+mv-cameras-ros (0.1-23) precise; urgency=low
+
+  * improving python scripts 
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Thu, 06 Jun 2013 10:37:26 +0000
+
 mv-cameras-ros (0.1-22) precise; urgency=low
 
   * forgot to include some files 

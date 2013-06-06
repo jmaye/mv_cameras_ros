@@ -31,33 +31,21 @@ def getCameras():
     print "GetCameras request failed: %s" % exception
     return response.serials
 
-def setGain(serial, gain):
-  rospy.wait_for_service("/mv_cameras_manager/" + serial + "/set_gain")
+def getGain(serial):
+  rospy.wait_for_service("/mv_cameras_manager/" + serial + "/get_gain")
   try:
     request = rospy.ServiceProxy(
-      "/mv_cameras_manager/" + serial + "/set_gain", SetGain)
-    response = request(gain)
-    if response.response:
-      print "Gain for %s set to: %f" %(serial, gain)
-    else:
-      print "Failed to set gain for %s to: %f" %(serial, gain)
-      print "Reason: %s" % response.message
+      "/mv_cameras_manager/" + serial + "/get_gain", GetGain)
+    response = request()
+    print "Gain for %s is: %f" %(serial, response.gain)
   except rospy.ServiceException, exception:
-    print "SetGain request failed for %s: %s" %(serial, exception)
-
-def usage():
-  return "%s SERIAL GAIN or GAIN" % sys.argv[0]
+    print "GetGain request failed for %s: %s" %(serial, exception)
 
 if __name__ == "__main__":
-  if len(sys.argv) == 3:
+  if len(sys.argv) == 2:
     serial = str(sys.argv[1])
-    gain = float(sys.argv[2])
-    setGain(serial, gain)
-  elif len(sys.argv) == 2:
-    gain = float(sys.argv[1])
+    getGain(serial)
+  else:
     serials = getCameras()
     for i in range(len(serials)):
-      setGain(serials[i], gain)
-  else:
-    print usage()
-    sys.exit(1)
+      getGain(serials[i])

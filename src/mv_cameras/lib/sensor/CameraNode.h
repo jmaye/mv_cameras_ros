@@ -38,6 +38,9 @@
 #include "mv_cameras/SetExposure.h"
 #include "mv_cameras/SetGain.h"
 #include "mv_cameras/SetFramerate.h"
+#include "mv_cameras/GetExposure.h"
+#include "mv_cameras/GetGain.h"
+#include "mv_cameras/GetFramerate.h"
 
 namespace mvIMPACT {
   namespace acquire {
@@ -126,6 +129,15 @@ namespace mv {
     /// Set framerate service
     bool setFramerate(mv_cameras::SetFramerate::Request& request,
       mv_cameras::SetFramerate::Response& response);
+    /// Get exposure service
+    bool getExposure(mv_cameras::GetExposure::Request& request,
+      mv_cameras::GetExposure::Response& response);
+    /// Get gain service
+    bool getGain(mv_cameras::GetGain::Request& request,
+      mv_cameras::GetGain::Response& response);
+    /// Get framerate service
+    bool getFramerate(mv_cameras::GetFramerate::Request& request,
+      mv_cameras::GetFramerate::Response& response);
     /** @}
       */
 
@@ -222,12 +234,18 @@ namespace mv {
     int _lastImageBytesPerPixel;
     /// Image gain setting
     double _gain;
-    /// Exposure service
+    /// Set exposure service
     ros::ServiceServer _setExposureService;
-    /// Gain service
+    /// Set gain service
     ros::ServiceServer _setGainService;
-    /// Framerate service
+    /// Set framerate service
     ros::ServiceServer _setFramerateService;
+    /// Get exposure service
+    ros::ServiceServer _getExposureService;
+    /// Get gain service
+    ros::ServiceServer _getGainService;
+    /// Get framerate service
+    ros::ServiceServer _getFramerateService;
     /** @}
       */
 
