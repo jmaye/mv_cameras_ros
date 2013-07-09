@@ -32,21 +32,21 @@ def getCameras():
     print "GetCameras request failed: %s" % exception
     return response.serials
 
-def getFramerate(serial):
-  rospy.wait_for_service("/mv_cameras_manager/" + serial + "/get_framerate")
+def getPixelClock(serial):
+  rospy.wait_for_service("/mv_cameras_manager/" + serial + "/get_pixel_clock")
   try:
     request = rospy.ServiceProxy(
-      "/mv_cameras_manager/" + serial + "/get_framerate", GetFramerate)
+      "/mv_cameras_manager/" + serial + "/get_pixel_clock", GetPixelClock)
     response = request()
-    print "Framerate for %s is: %f" %(serial, response.framerate)
+    print "Pixel clock for %s is: %f" %(serial, response.pixelClock)
   except rospy.ServiceException, exception:
-    print "GetFramerate request failed for %s: %s" %(serial, exception)
+    print "GetPixelClock request failed for %s: %s" %(serial, exception)
 
 if __name__ == "__main__":
   if len(sys.argv) == 2:
     serial = str(sys.argv[1])
-    getFramerate(serial)
+    getPixelClock(serial)
   else:
     serials = getCameras()
     for i in range(len(serials)):
-      getFramerate(serials[i])
+      getPixelClock(serials[i])

@@ -18,6 +18,8 @@
 
 #include "sensor/CameraNode.h"
 
+#include <boost/make_shared.hpp>
+
 #include <cmath>
 
 #include <sstream>
@@ -103,12 +105,16 @@ namespace mv {
       &CameraNode::setGain, this);
     _setFramerateService = _nodeHandle.advertiseService(
       _serial + "/set_framerate", &CameraNode::setFramerate, this);
+    _setPixelClockService = _nodeHandle.advertiseService(
+      _serial + "/set_pixel_clock", &CameraNode::setPixelClock, this);
     _getExposureService = _nodeHandle.advertiseService(
       _serial + "/get_exposure", &CameraNode::getExposure, this);
     _getGainService = _nodeHandle.advertiseService(_serial + "/get_gain",
       &CameraNode::getGain, this);
     _getFramerateService = _nodeHandle.advertiseService(
       _serial + "/get_framerate", &CameraNode::getFramerate, this);
+    _getPixelClockService = _nodeHandle.advertiseService(
+      _serial + "/get_pixel_clock", &CameraNode::getPixelClock, this);
     _updater.add(_serial + " Camera status", this, &CameraNode::diagnoseCamera);
     _updater.force_update();
   }
@@ -232,14 +238,17 @@ namespace mv {
 
   void CameraNode::publishImage(const ros::Time& timestamp,
       const Request* request) {
-    mv_cameras::ImageSnappyMsgPtr imageSnappyMsg(
-      new mv_cameras::ImageSnappyMsg);
+    mv_cameras::ImageSnappyMsgPtr imageSnappyMsg =
+      boost::make_shared<mv_cameras::ImageSnappyMsg>();
     imageSnappyMsg->header.stamp = timestamp;
     imageSnappyMsg->header.frame_id = _frameId;
     imageSnappyMsg->header.seq = request->infoFrameNr.read();
     imageSnappyMsg->width = request->imageWidth.read();
     imageSnappyMsg->height = request->imageHeight.read();
     imageSnappyMsg->hwTimestamp = request->infoTimeStamp_us.read();
+    imageSnappyMsg->gain = _lastImageGain;
+    imageSnappyMsg->exposureTime = _lastExposureTime;
+    imageSnappyMsg->pixelClock = _pixelClock;
     std::string imageSnappy;
     snappy::Compress(reinterpret_cast<char*>(request->imageData.read()),
       request->imageSize.read(), &imageSnappy);
@@ -247,7 +256,8 @@ namespace mv {
     std::copy(imageSnappy.begin(), imageSnappy.end(),
       imageSnappyMsg->data.begin());
     _imageSnappyPublisher.publish(imageSnappyMsg);
-    sensor_msgs::ImagePtr imageRawMsg(new sensor_msgs::Image);
+    sensor_msgs::ImagePtr imageRawMsg =
+      boost::make_shared<sensor_msgs::Image>();
     imageRawMsg->header.stamp = timestamp;
     imageRawMsg->header.frame_id = _frameId;
     imageRawMsg->header.seq = request->infoFrameNr.read();
@@ -377,13 +387,14 @@ namespace mv {
     ac.exposureTime.write(_exposureTime);
     ImageFormatControl ifc(_device);
     ImageProcessing ip(_device);
-    // TODO: make this a configurable parameter
     ifc.pixelFormat.writeS("BayerGR8");
     ip.colorProcessing.write(cpmBayerToMono);
     ifc.width.write(_width);
     ifc.height.write(_height);
     AnalogControl anc(_device);
     anc.gain.write(_gain);
+    DeviceControl dc(_device);
+    dc.mvDeviceClockFrequency.write(_pixelClock);
   }
 
   void CameraNode::initAcquisition() {
@@ -425,6 +436,8 @@ namespace mv {
       _width, 1280);
     _nodeHandle.param<int>(_device->serial.readS() + "/height",
       _height, 960);
+    _nodeHandle.param<int>(_device->serial.readS() + "/pixel_clock",
+      _pixelClock, 40000);
     _nodeHandle.param<int>(_device->serial.readS() + "/timeout_ms",
       _timeoutMs, 500);
     _nodeHandle.param<double>(_device->serial.readS() + "/retry_timeout",
@@ -485,6 +498,7 @@ namespace mv {
     status.add("Missing data average", missingDataAverage_pc);
     status.add("Retransmit count", retransmitCount);
     status.add("Missed frames count", _missedFramesCount);
+    status.add("Pixel clock [kHz]", _pixelClock);
     status.add("Image height", _lastImageHeight);
     status.add("Image width", _lastImageWidth);
     status.add("Image gain [db]", _lastImageGain);
@@ -596,6 +610,28 @@ namespace mv {
     return true;
   }
 
+  bool CameraNode::setPixelClock(mv_cameras::SetPixelClock::Request& request,
+      mv_cameras::SetPixelClock::Response& response) {
+    Mutex::ScopedLock lock(_mutex);
+    try {
+      _pixelClock = request.pixelClock;
+      DeviceControl dc(_device);
+      dc.mvDeviceClockFrequency.write(_pixelClock);
+      response.response = true;
+      response.message = "Success";
+    }
+    catch (const ImpactAcquireException& e) {
+      ROS_WARN_STREAM("CameraNode::setPixelClock(): "
+        "ImpactAcquireException: " << std::endl
+        << "serial: " << _device->serial.readS() << std::endl
+        << "error code: " << e.getErrorCodeAsString() << std::endl
+        << "message: " << e.what());
+      response.response = false;
+      response.message = e.what();
+    }
+    return true;
+  }
+
   bool CameraNode::getExposure(mv_cameras::GetExposure::Request& request,
       mv_cameras::GetExposure::Response& response) {
     Mutex::ScopedLock lock(_mutex);
@@ -614,6 +650,13 @@ namespace mv {
       mv_cameras::GetFramerate::Response& response) {
     Mutex::ScopedLock lock(_mutex);
     response.framerate = _framerate;
+    return true;
+  }
+
+  bool CameraNode::getPixelClock(mv_cameras::GetPixelClock::Request& request,
+      mv_cameras::GetPixelClock::Response& response) {
+    Mutex::ScopedLock lock(_mutex);
+    response.pixelClock = _pixelClock;
     return true;
   }
 

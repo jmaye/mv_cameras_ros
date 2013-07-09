@@ -1,3 +1,10 @@
+mv-cameras-ros (0.1-25) precise; urgency=low
+
+  * added pixel clock setting
+  * added gain, exposure, and pixel clock in image_snappy message 
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Tue, 09 Jul 2013 08:48:08 +0000
+
 mv-cameras-ros (0.1-24) precise; urgency=low
 
   * groovy distribution ready 

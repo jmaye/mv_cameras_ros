@@ -24,6 +24,7 @@
 #ifndef CAMERA_NODE_H
 #define CAMERA_NODE_H
 
+#include <memory>
 #include <string>
 
 #include <ros/ros.h>
@@ -38,9 +39,11 @@
 #include "mv_cameras/SetExposure.h"
 #include "mv_cameras/SetGain.h"
 #include "mv_cameras/SetFramerate.h"
+#include "mv_cameras/SetPixelClock.h"
 #include "mv_cameras/GetExposure.h"
 #include "mv_cameras/GetGain.h"
 #include "mv_cameras/GetFramerate.h"
+#include "mv_cameras/GetPixelClock.h"
 
 namespace mvIMPACT {
   namespace acquire {
@@ -129,6 +132,9 @@ namespace mv {
     /// Set framerate service
     bool setFramerate(mv_cameras::SetFramerate::Request& request,
       mv_cameras::SetFramerate::Response& response);
+    /// Set pixel clock service
+    bool setPixelClock(mv_cameras::SetPixelClock::Request& request,
+      mv_cameras::SetPixelClock::Response& response);
     /// Get exposure service
     bool getExposure(mv_cameras::GetExposure::Request& request,
       mv_cameras::GetExposure::Response& response);
@@ -138,6 +144,9 @@ namespace mv {
     /// Get framerate service
     bool getFramerate(mv_cameras::GetFramerate::Request& request,
       mv_cameras::GetFramerate::Response& response);
+    /// Get pixel clock service
+    bool getPixelClock(mv_cameras::GetPixelClock::Request& request,
+      mv_cameras::GetPixelClock::Response& response);
     /** @}
       */
 
@@ -240,12 +249,18 @@ namespace mv {
     ros::ServiceServer _setGainService;
     /// Set framerate service
     ros::ServiceServer _setFramerateService;
+    /// Set pixel clock service
+    ros::ServiceServer _setPixelClockService;
     /// Get exposure service
     ros::ServiceServer _getExposureService;
     /// Get gain service
     ros::ServiceServer _getGainService;
     /// Get framerate service
     ros::ServiceServer _getFramerateService;
+    /// Get pixel clock service
+    ros::ServiceServer _getPixelClockService;
+    /// Pixel clock
+    int _pixelClock;
     /** @}
       */
 
