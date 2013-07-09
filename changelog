@@ -1,3 +1,9 @@
+mv-cameras-ros (0.1-26) precise; urgency=low
+
+  * some checks for the settings 
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Tue, 09 Jul 2013 09:08:47 +0000
+
 mv-cameras-ros (0.1-25) precise; urgency=low
 
   * added pixel clock setting

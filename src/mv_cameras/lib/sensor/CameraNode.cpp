@@ -523,6 +523,7 @@ namespace mv {
   bool CameraNode::setExposure(mv_cameras::SetExposure::Request& request,
       mv_cameras::SetExposure::Response& response) {
     Mutex::ScopedLock lock(_mutex);
+    const double oldExposureTime = _exposureTime;
     try {
       _exposureTime = request.exposure;
       AcquisitionControl ac(_device);
@@ -546,6 +547,7 @@ namespace mv {
         << "message: " << e.what());
       response.response = false;
       response.message = e.what();
+      _exposureTime = oldExposureTime;
     }
     return true;
   }
@@ -553,6 +555,7 @@ namespace mv {
   bool CameraNode::setGain(mv_cameras::SetGain::Request& request,
       mv_cameras::SetGain::Response& response) {
     Mutex::ScopedLock lock(_mutex);
+    const double oldGain = _gain;
     try {
       _gain = request.gain;
       AnalogControl anc(_device);
@@ -568,6 +571,7 @@ namespace mv {
         << "message: " << e.what());
       response.response = false;
       response.message = e.what();
+      _gain = oldGain;
     }
     return true;
   }
@@ -575,6 +579,7 @@ namespace mv {
   bool CameraNode::setFramerate(mv_cameras::SetFramerate::Request& request,
       mv_cameras::SetFramerate::Response& response) {
     Mutex::ScopedLock lock(_mutex);
+    const double oldFramerate = _framerate;
     try {
       if (_isMaster) {
         _framerate = request.framerate;
@@ -606,6 +611,7 @@ namespace mv {
         << "message: " << e.what());
       response.response = false;
       response.message = e.what();
+      _framerate = oldFramerate;
     }
     return true;
   }
@@ -613,6 +619,7 @@ namespace mv {
   bool CameraNode::setPixelClock(mv_cameras::SetPixelClock::Request& request,
       mv_cameras::SetPixelClock::Response& response) {
     Mutex::ScopedLock lock(_mutex);
+    const int oldPixelClock = _pixelClock;
     try {
       _pixelClock = request.pixelClock;
       DeviceControl dc(_device);
@@ -628,6 +635,7 @@ namespace mv {
         << "message: " << e.what());
       response.response = false;
       response.message = e.what();
+      _pixelClock = oldPixelClock;
     }
     return true;
   }
