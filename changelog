@@ -1,3 +1,9 @@
+mv-cameras-ros (0.1-27) precise; urgency=low
+
+  * update version 
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Sun, 14 Jul 2013 15:55:21 +0000
+
 mv-cameras-ros (0.1-26) precise; urgency=low
 
   * some checks for the settings 
