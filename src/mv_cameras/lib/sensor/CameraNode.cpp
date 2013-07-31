@@ -86,6 +86,7 @@ namespace mv {
     _deviceSubnetMask = getIPAddress(dm.gevDeviceSubnetMask.readS());
     _deviceMACAddress = getMACAddress(dm.gevDeviceMACAddress.readS());
     _deviceFPGAVersion = dc.mvDeviceFPGAVersion.readS();
+    _pixelClock = dc.mvDeviceClockFrequency.read();
     setSynchronization();
     setFeatures();
     initAcquisition();
@@ -387,14 +388,20 @@ namespace mv {
     ac.exposureTime.write(_exposureTime);
     ImageFormatControl ifc(_device);
     ImageProcessing ip(_device);
-    ifc.pixelFormat.writeS("BayerGR8");
+    std::string fmt = ifc.pixelColorFilter.readS();
+    if(!fmt.compare("BayerRG"))
+      ifc.pixelFormat.writeS("BayerRG8");
+    else if(!fmt.compare("BayerGB"))
+      ifc.pixelFormat.writeS("BayerGB8");
+    else if(!fmt.compare("BayerGR"))
+      ifc.pixelFormat.writeS("BayerGR8");
+    else if( !fmt.compare("BayerBG"))
+      ifc.pixelFormat.writeS("BayerBG8");
     ip.colorProcessing.write(cpmBayerToMono);
     ifc.width.write(_width);
     ifc.height.write(_height);
     AnalogControl anc(_device);
     anc.gain.write(_gain);
-    DeviceControl dc(_device);
-    dc.mvDeviceClockFrequency.write(_pixelClock);
   }
 
   void CameraNode::initAcquisition() {
@@ -436,8 +443,6 @@ namespace mv {
       _width, 1280);
     _nodeHandle.param<int>(_device->serial.readS() + "/height",
       _height, 960);
-    _nodeHandle.param<int>(_device->serial.readS() + "/pixel_clock",
-      _pixelClock, 40000);
     _nodeHandle.param<int>(_device->serial.readS() + "/timeout_ms",
       _timeoutMs, 500);
     _nodeHandle.param<double>(_device->serial.readS() + "/retry_timeout",

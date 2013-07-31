@@ -1,3 +1,9 @@
+mv-cameras-ros (0.1-28) precise; urgency=low
+
+  * adaptation for CCD sensors 
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Wed, 31 Jul 2013 11:27:21 +0000
+
 mv-cameras-ros (0.1-27) precise; urgency=low
 
   * update version 
