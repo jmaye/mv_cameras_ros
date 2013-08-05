@@ -1,0 +1,4 @@
+bool syncMode
+---
+bool response
+string message

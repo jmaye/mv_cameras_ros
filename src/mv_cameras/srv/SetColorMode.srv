@@ -1,0 +1,4 @@
+bool colorMode
+---
+bool response
+string message

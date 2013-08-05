@@ -40,10 +40,14 @@
 #include "mv_cameras/SetGain.h"
 #include "mv_cameras/SetFramerate.h"
 #include "mv_cameras/SetPixelClock.h"
+#include "mv_cameras/SetColorMode.h"
+#include "mv_cameras/SetSyncMode.h"
 #include "mv_cameras/GetExposure.h"
 #include "mv_cameras/GetGain.h"
 #include "mv_cameras/GetFramerate.h"
 #include "mv_cameras/GetPixelClock.h"
+#include "mv_cameras/GetColorMode.h"
+#include "mv_cameras/GetSyncMode.h"
 
 namespace mvIMPACT {
   namespace acquire {
@@ -135,6 +139,12 @@ namespace mv {
     /// Set pixel clock service
     bool setPixelClock(mv_cameras::SetPixelClock::Request& request,
       mv_cameras::SetPixelClock::Response& response);
+    /// Set color mode service
+    bool setColorMode(mv_cameras::SetColorMode::Request& request,
+      mv_cameras::SetColorMode::Response& response);
+    /// Set synchronization mode service
+    bool setSyncMode(mv_cameras::SetSyncMode::Request& request,
+      mv_cameras::SetSyncMode::Response& response);
     /// Get exposure service
     bool getExposure(mv_cameras::GetExposure::Request& request,
       mv_cameras::GetExposure::Response& response);
@@ -147,6 +157,12 @@ namespace mv {
     /// Get pixel clock service
     bool getPixelClock(mv_cameras::GetPixelClock::Request& request,
       mv_cameras::GetPixelClock::Response& response);
+    /// Get color mode service
+    bool getColorMode(mv_cameras::GetColorMode::Request& request,
+      mv_cameras::GetColorMode::Response& response);
+    /// Get synchronization mode service
+    bool getSyncMode(mv_cameras::GetSyncMode::Request& request,
+      mv_cameras::GetSyncMode::Response& response);
     /** @}
       */
 
@@ -251,6 +267,10 @@ namespace mv {
     ros::ServiceServer _setFramerateService;
     /// Set pixel clock service
     ros::ServiceServer _setPixelClockService;
+    /// Set color mode service
+    ros::ServiceServer _setColorModeService;
+    /// Set synchronization mode service
+    ros::ServiceServer _setSyncModeService;
     /// Get exposure service
     ros::ServiceServer _getExposureService;
     /// Get gain service
@@ -259,8 +279,16 @@ namespace mv {
     ros::ServiceServer _getFramerateService;
     /// Get pixel clock service
     ros::ServiceServer _getPixelClockService;
+    /// Get color mode service
+    ros::ServiceServer _getColorModeService;
+    /// Get synchronization mode service
+    ros::ServiceServer _getSyncModeService;
     /// Pixel clock
     int _pixelClock;
+    /// Color mode
+    bool _colorMode;
+    /// Synchronized mode
+    bool _syncMode;
     /** @}
       */
 

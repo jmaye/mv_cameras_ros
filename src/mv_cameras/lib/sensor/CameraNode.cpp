@@ -108,6 +108,10 @@ namespace mv {
       _serial + "/set_framerate", &CameraNode::setFramerate, this);
     _setPixelClockService = _nodeHandle.advertiseService(
       _serial + "/set_pixel_clock", &CameraNode::setPixelClock, this);
+    _setColorModeService = _nodeHandle.advertiseService(
+      _serial + "/set_color_mode", &CameraNode::setColorMode, this);
+    _setSyncModeService = _nodeHandle.advertiseService(
+      _serial + "/set_sync_mode", &CameraNode::setSyncMode, this);
     _getExposureService = _nodeHandle.advertiseService(
       _serial + "/get_exposure", &CameraNode::getExposure, this);
     _getGainService = _nodeHandle.advertiseService(_serial + "/get_gain",
@@ -116,6 +120,10 @@ namespace mv {
       _serial + "/get_framerate", &CameraNode::getFramerate, this);
     _getPixelClockService = _nodeHandle.advertiseService(
       _serial + "/get_pixel_clock", &CameraNode::getPixelClock, this);
+    _getColorModeService = _nodeHandle.advertiseService(
+      _serial + "/get_color_mode", &CameraNode::getColorMode, this);
+    _getSyncModeService = _nodeHandle.advertiseService(
+      _serial + "/get_sync_mode", &CameraNode::getSyncMode, this);
     _updater.add(_serial + " Camera status", this, &CameraNode::diagnoseCamera);
     _updater.force_update();
   }
@@ -265,7 +273,10 @@ namespace mv {
     imageRawMsg->height = request->imageHeight.read();
     imageRawMsg->width = request->imageWidth.read();
     imageRawMsg->step = request->imageLinePitch.read();
-    imageRawMsg->encoding = sensor_msgs::image_encodings::MONO8;
+    if (_colorMode)
+      imageRawMsg->encoding = sensor_msgs::image_encodings::RGB8;
+    else
+      imageRawMsg->encoding = sensor_msgs::image_encodings::MONO8;
     imageRawMsg->data.resize(request->imageSize.read());
     std::copy(reinterpret_cast<char*>(request->imageData.read()),
       reinterpret_cast<char*>(request->imageData.read()) +
@@ -349,7 +360,7 @@ namespace mv {
       // timer2 triggers the integration start when timer1 ends
       catcMaster.timerSelector.writeS("Timer2");
       catcMaster.timerDelay.write(0.);
-      catcMaster.timerDuration.write(1000.);
+      catcMaster.timerDuration.write(1000);
       catcMaster.timerTriggerSource.writeS("Timer1End");
       // counter 1 and 2 are used for resetting timestamps
       catcMaster.counterSelector.writeS("Counter1");
@@ -366,16 +377,24 @@ namespace mv {
       // line 0 goes to line 4 and line 1 goes to line 5
       DigitalIOControl io(_device);
       io.lineSelector.writeS("Line0");
-      io.lineSource.writeS( "Timer2Active" );
+      io.lineSource.writeS("Timer2Active");
       io.lineSelector.writeS("Line1");
       io.lineSource.writeS("Counter2Active");
     }
     // set trigger of master and slave camera, rising edge of timer2
     AcquisitionControl ac(_device);
-    ac.triggerSelector.writeS("FrameStart");
-    ac.triggerMode.writeS("On");
-    ac.triggerSource.writeS("Line4");
-    ac.triggerActivation.writeS("RisingEdge");
+    if (_syncMode) {
+      ac.triggerSelector.writeS("FrameStart");
+      ac.triggerMode.writeS("On");
+      ac.triggerSource.writeS("Line4");
+      ac.triggerActivation.writeS("RisingEdge");
+    }
+    else {
+      ac.triggerSelector.writeS("FrameStart");
+      ac.triggerMode.writeS("Off");
+      ac.triggerSource.writeS("Line4");
+      ac.triggerActivation.writeS("RisingEdge");
+    }
     // trigger a timestamp reset on every pulse on line 5, i.e. every 150 frames
     ac.triggerSelector.writeS("mvTimestampReset");
     ac.triggerMode.writeS("On");
@@ -386,8 +405,8 @@ namespace mv {
   void CameraNode::setFeatures() {
     AcquisitionControl ac(_device);
     ac.exposureTime.write(_exposureTime);
+    ac.acquisitionFrameRate.write(_framerate);
     ImageFormatControl ifc(_device);
-    ImageProcessing ip(_device);
     std::string fmt = ifc.pixelColorFilter.readS();
     if(!fmt.compare("BayerRG"))
       ifc.pixelFormat.writeS("BayerRG8");
@@ -395,11 +414,20 @@ namespace mv {
       ifc.pixelFormat.writeS("BayerGB8");
     else if(!fmt.compare("BayerGR"))
       ifc.pixelFormat.writeS("BayerGR8");
-    else if( !fmt.compare("BayerBG"))
+    else if(!fmt.compare("BayerBG"))
       ifc.pixelFormat.writeS("BayerBG8");
-    ip.colorProcessing.write(cpmBayerToMono);
     ifc.width.write(_width);
     ifc.height.write(_height);
+    ImageProcessing ip(_device);
+    ImageDestination id(_device);
+    if (_colorMode) {
+      ip.colorProcessing.write(cpmBayer);
+      id.pixelFormat.write(idpfRGB888Packed);
+    }
+    else {
+      ip.colorProcessing.write(cpmBayerToMono);
+      id.pixelFormat.write(idpfMono8);
+    }
     AnalogControl anc(_device);
     anc.gain.write(_gain);
   }
@@ -437,18 +465,19 @@ namespace mv {
     if (_exposureTime > 1e6 / _framerate)
       ROS_WARN_STREAM("CameraNode::getParameters(): "
         "exposure time is bigger than frame duration");
-    _nodeHandle.param<double>(_device->serial.readS() + "/gain",
-      _gain, 0.0);
-    _nodeHandle.param<int>(_device->serial.readS() + "/width",
-      _width, 1280);
-    _nodeHandle.param<int>(_device->serial.readS() + "/height",
-      _height, 960);
-    _nodeHandle.param<int>(_device->serial.readS() + "/timeout_ms",
-      _timeoutMs, 500);
+    _nodeHandle.param<double>(_device->serial.readS() + "/gain", _gain, 0.0);
+    _nodeHandle.param<int>(_device->serial.readS() + "/width", _width, 1280);
+    _nodeHandle.param<int>(_device->serial.readS() + "/height", _height, 960);
+    _nodeHandle.param<bool>(_device->serial.readS() + "/color_mode", _colorMode,
+      false);
+    _nodeHandle.param<bool>(_device->serial.readS() + "/sync_mode", _syncMode,
+      true);
+    _nodeHandle.param<int>(_device->serial.readS() + "/timeout_ms", _timeoutMs,
+      500);
     _nodeHandle.param<double>(_device->serial.readS() + "/retry_timeout",
       _retryTimeout, 1);
-    _nodeHandle.param<std::string>(_device->serial.readS() +
-      "/frame_id", _frameId, "/" + _device->serial.readS() + "_link");
+    _nodeHandle.param<std::string>(_device->serial.readS() + "/frame_id",
+      _frameId, "/" + _device->serial.readS() + "_link");
     _nodeHandle.param<int>(_device->serial.readS() + "/queue_depth",
       _queueDepth, 100);
     _nodeHandle.param<double>(_device->serial.readS() + "/fps_tolerance",
@@ -504,6 +533,8 @@ namespace mv {
     status.add("Retransmit count", retransmitCount);
     status.add("Missed frames count", _missedFramesCount);
     status.add("Pixel clock [kHz]", _pixelClock);
+    status.add("Color mode", _colorMode);
+    status.add("Synchronization mode", _syncMode);
     status.add("Image height", _lastImageHeight);
     status.add("Image width", _lastImageWidth);
     status.add("Image gain [db]", _lastImageGain);
@@ -586,26 +617,24 @@ namespace mv {
     Mutex::ScopedLock lock(_mutex);
     const double oldFramerate = _framerate;
     try {
+      _framerate = request.framerate;
       if (_isMaster) {
-        _framerate = request.framerate;
         const double frameDuration = 1e6 / _framerate;
         CounterAndTimerControl catcMaster(_device);
         catcMaster.timerSelector.writeS("Timer1");
         catcMaster.timerDuration.write(frameDuration);
-        if (_exposureTime > 1e6 / _framerate) {
-          ROS_WARN_STREAM("CameraNode::setFramerate(): "
-            "exposure time is bigger than frame duration");
-          response.response = true;
-          response.message = "Exposure time is bigger than frame duration";
-        }
-        else {
-          response.response = true;
-          response.message = "Success";
-        }
+      }
+      AcquisitionControl ac(_device);
+      ac.acquisitionFrameRate.write(_framerate);
+      if (_exposureTime > 1e6 / _framerate) {
+        ROS_WARN_STREAM("CameraNode::setFramerate(): "
+          "exposure time is bigger than frame duration");
+        response.response = true;
+        response.message = "Exposure time is bigger than frame duration";
       }
       else {
-        response.response = false;
-        response.message = "Framerate can only be set on the master camera";
+        response.response = true;
+        response.message = "Success";
       }
     }
     catch (const ImpactAcquireException& e) {
@@ -645,6 +674,73 @@ namespace mv {
     return true;
   }
 
+  bool CameraNode::setColorMode(mv_cameras::SetColorMode::Request& request,
+      mv_cameras::SetColorMode::Response& response) {
+    Mutex::ScopedLock lock(_mutex);
+    const bool oldColorMode = _colorMode;
+    try {
+      _colorMode = request.colorMode;
+      ImageProcessing ip(_device);
+      ImageDestination id(_device);
+      if (_colorMode) {
+        ip.colorProcessing.write(cpmBayer);
+        id.pixelFormat.write(idpfRGB888Packed);
+      }
+      else {
+        ip.colorProcessing.write(cpmBayerToMono);
+        id.pixelFormat.write(idpfMono8);
+      }
+      response.response = true;
+      response.message = "Success";
+    }
+    catch (const ImpactAcquireException& e) {
+      ROS_WARN_STREAM("CameraNode::setPixelClock(): "
+        "ImpactAcquireException: " << std::endl
+        << "serial: " << _device->serial.readS() << std::endl
+        << "error code: " << e.getErrorCodeAsString() << std::endl
+        << "message: " << e.what());
+      response.response = false;
+      response.message = e.what();
+      _colorMode = oldColorMode;
+    }
+    return true;
+  }
+
+  bool CameraNode::setSyncMode(mv_cameras::SetSyncMode::Request& request,
+      mv_cameras::SetSyncMode::Response& response) {
+    Mutex::ScopedLock lock(_mutex);
+    const bool oldSyncMode = _syncMode;
+    try {
+      _syncMode = request.syncMode;
+      AcquisitionControl ac(_device);
+      if (_syncMode) {
+        ac.triggerSelector.writeS("FrameStart");
+        ac.triggerMode.writeS("On");
+        ac.triggerSource.writeS("Line4");
+        ac.triggerActivation.writeS("RisingEdge");
+      }
+      else {
+        ac.triggerSelector.writeS("FrameStart");
+        ac.triggerMode.writeS("Off");
+        ac.triggerSource.writeS("Line4");
+        ac.triggerActivation.writeS("RisingEdge");
+      }
+      response.response = true;
+      response.message = "Success";
+    }
+    catch (const ImpactAcquireException& e) {
+      ROS_WARN_STREAM("CameraNode::setPixelClock(): "
+        "ImpactAcquireException: " << std::endl
+        << "serial: " << _device->serial.readS() << std::endl
+        << "error code: " << e.getErrorCodeAsString() << std::endl
+        << "message: " << e.what());
+      response.response = false;
+      response.message = e.what();
+      _syncMode = oldSyncMode;
+    }
+    return true;
+  }
+
   bool CameraNode::getExposure(mv_cameras::GetExposure::Request& request,
       mv_cameras::GetExposure::Response& response) {
     Mutex::ScopedLock lock(_mutex);
@@ -670,6 +766,20 @@ namespace mv {
       mv_cameras::GetPixelClock::Response& response) {
     Mutex::ScopedLock lock(_mutex);
     response.pixelClock = _pixelClock;
+    return true;
+  }
+
+  bool CameraNode::getColorMode(mv_cameras::GetColorMode::Request& request,
+      mv_cameras::GetColorMode::Response& response) {
+    Mutex::ScopedLock lock(_mutex);
+    response.colorMode = _colorMode;
+    return true;
+  }
+
+  bool CameraNode::getSyncMode(mv_cameras::GetSyncMode::Request& request,
+      mv_cameras::GetSyncMode::Response& response) {
+    Mutex::ScopedLock lock(_mutex);
+    response.syncMode = _syncMode;
     return true;
   }
 
