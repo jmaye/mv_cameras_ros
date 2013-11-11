@@ -42,12 +42,14 @@
 #include "mv_cameras/SetPixelClock.h"
 #include "mv_cameras/SetColorMode.h"
 #include "mv_cameras/SetSyncMode.h"
+#include "mv_cameras/SetTimestampReset.h"
 #include "mv_cameras/GetExposure.h"
 #include "mv_cameras/GetGain.h"
 #include "mv_cameras/GetFramerate.h"
 #include "mv_cameras/GetPixelClock.h"
 #include "mv_cameras/GetColorMode.h"
 #include "mv_cameras/GetSyncMode.h"
+#include "mv_cameras/GetTimestampReset.h"
 
 namespace mvIMPACT {
   namespace acquire {
@@ -145,6 +147,9 @@ namespace mv {
     /// Set synchronization mode service
     bool setSyncMode(mv_cameras::SetSyncMode::Request& request,
       mv_cameras::SetSyncMode::Response& response);
+    /// Set timestamp reset service
+    bool setTimestampReset(mv_cameras::SetTimestampReset::Request& request,
+      mv_cameras::SetTimestampReset::Response& response);
     /// Get exposure service
     bool getExposure(mv_cameras::GetExposure::Request& request,
       mv_cameras::GetExposure::Response& response);
@@ -163,6 +168,9 @@ namespace mv {
     /// Get synchronization mode service
     bool getSyncMode(mv_cameras::GetSyncMode::Request& request,
       mv_cameras::GetSyncMode::Response& response);
+    /// Get timestamp reset service
+    bool getTimestampReset(mv_cameras::GetTimestampReset::Request& request,
+      mv_cameras::GetTimestampReset::Response& response);
     /** @}
       */
 
@@ -271,6 +279,8 @@ namespace mv {
     ros::ServiceServer _setColorModeService;
     /// Set synchronization mode service
     ros::ServiceServer _setSyncModeService;
+    /// Set timestamp reset service
+    ros::ServiceServer _setTimestampResetService;
     /// Get exposure service
     ros::ServiceServer _getExposureService;
     /// Get gain service
@@ -283,12 +293,16 @@ namespace mv {
     ros::ServiceServer _getColorModeService;
     /// Get synchronization mode service
     ros::ServiceServer _getSyncModeService;
+    /// Get timestamp reset
+    ros::ServiceServer _getTimestampResetService;
     /// Pixel clock
     int _pixelClock;
     /// Color mode
     bool _colorMode;
     /// Synchronized mode
     bool _syncMode;
+    /// Number of frames before timestamp resetting
+    int _numFramesTimestampReset;
     /** @}
       */
 

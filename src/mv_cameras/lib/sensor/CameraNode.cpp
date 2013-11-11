@@ -112,6 +112,8 @@ namespace mv {
       _serial + "/set_color_mode", &CameraNode::setColorMode, this);
     _setSyncModeService = _nodeHandle.advertiseService(
       _serial + "/set_sync_mode", &CameraNode::setSyncMode, this);
+    _setTimestampResetService = _nodeHandle.advertiseService(
+      _serial + "/set_timestamp_reset", &CameraNode::setTimestampReset, this);
     _getExposureService = _nodeHandle.advertiseService(
       _serial + "/get_exposure", &CameraNode::getExposure, this);
     _getGainService = _nodeHandle.advertiseService(_serial + "/get_gain",
@@ -124,6 +126,8 @@ namespace mv {
       _serial + "/get_color_mode", &CameraNode::getColorMode, this);
     _getSyncModeService = _nodeHandle.advertiseService(
       _serial + "/get_sync_mode", &CameraNode::getSyncMode, this);
+    _getTimestampResetService = _nodeHandle.advertiseService(
+      _serial + "/get_timestamp_reset", &CameraNode::getTimestampReset, this);
     _updater.add(_serial + " Camera status", this, &CameraNode::diagnoseCamera);
     _updater.force_update();
   }
@@ -366,7 +370,7 @@ namespace mv {
       catcMaster.counterSelector.writeS("Counter1");
       catcMaster.counterEventSource.writeS("Timer2End");
       catcMaster.counterTriggerSource.writeS("Timer1End");
-      catcMaster.counterDuration.write(150);
+      catcMaster.counterDuration.write(_numFramesTimestampReset);
       catcMaster.counterResetSource.writeS("Counter1End");
       catcMaster.counterSelector.writeS("Counter2");
       catcMaster.counterEventSource.writeS("Timer1End");
@@ -472,6 +476,8 @@ namespace mv {
       false);
     _nodeHandle.param<bool>(_device->serial.readS() + "/sync_mode", _syncMode,
       true);
+    _nodeHandle.param<int>(_device->serial.readS() + "/timestamp_reset",
+      _numFramesTimestampReset, 150);
     _nodeHandle.param<int>(_device->serial.readS() + "/timeout_ms", _timeoutMs,
       500);
     _nodeHandle.param<double>(_device->serial.readS() + "/retry_timeout",
@@ -741,6 +747,31 @@ namespace mv {
     return true;
   }
 
+  bool CameraNode::setTimestampReset(mv_cameras::SetTimestampReset::Request&
+      request, mv_cameras::SetTimestampReset::Response& response) {
+    Mutex::ScopedLock lock(_mutex);
+    const int oldTimestampReset = _numFramesTimestampReset;
+    try {
+      _numFramesTimestampReset = request.timestampReset;
+      CounterAndTimerControl catcMaster(_device);
+      catcMaster.counterSelector.writeS("Counter1");
+      catcMaster.counterDuration.write(_numFramesTimestampReset);
+      response.response = true;
+      response.message = "Success";
+    }
+    catch (const ImpactAcquireException& e) {
+      ROS_WARN_STREAM("CameraNode::setPixelClock(): "
+        "ImpactAcquireException: " << std::endl
+        << "serial: " << _device->serial.readS() << std::endl
+        << "error code: " << e.getErrorCodeAsString() << std::endl
+        << "message: " << e.what());
+      response.response = false;
+      response.message = e.what();
+      _numFramesTimestampReset = oldTimestampReset;
+    }
+    return true;
+  }
+
   bool CameraNode::getExposure(mv_cameras::GetExposure::Request& request,
       mv_cameras::GetExposure::Response& response) {
     Mutex::ScopedLock lock(_mutex);
@@ -780,6 +811,13 @@ namespace mv {
       mv_cameras::GetSyncMode::Response& response) {
     Mutex::ScopedLock lock(_mutex);
     response.syncMode = _syncMode;
+    return true;
+  }
+
+  bool CameraNode::getTimestampReset(mv_cameras::GetTimestampReset::Request&
+      request, mv_cameras::GetTimestampReset::Response& response) {
+    Mutex::ScopedLock lock(_mutex);
+    response.timestampReset = _numFramesTimestampReset;
     return true;
   }
 

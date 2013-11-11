@@ -1,3 +1,9 @@
+mv-cameras-ros (0.1-30) precise; urgency=low
+
+  * adding timestamp reset parameter
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Mon, 11 Nov 2013 13:52:08 +0000
+
 mv-cameras-ros (0.1-29) precise; urgency=low
 
   * allowing changing color mode + synchronization 

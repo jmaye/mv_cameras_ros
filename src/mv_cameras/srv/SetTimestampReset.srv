@@ -1,0 +1,4 @@
+int32 timestampReset
+---
+bool response
+string message
