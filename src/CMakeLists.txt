@@ -5,3 +5,4 @@ remake_ros_package(
   EXTRA_BUILD_DEPENDS libmv-dev libsnappy-dev
   EXTRA_RUN_DEPENDS libmv libsnappy
 )
+remake_ros_package_config_generate(PACKAGE mv_cameras EXTRA_CFLAGS -std=c++0x)
