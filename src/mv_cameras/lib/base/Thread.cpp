@@ -19,6 +19,7 @@
 #include "base/Thread.h"
 
 #include <cmath>
+#include <unistd.h>
 
 #include "base/Threads.h"
 #include "exceptions/SystemException.h"
