@@ -1,4 +1,10 @@
-mv-cameras-ros (0.1-33) UNRELEASED; urgency=medium
+mv-cameras-ros (0.1-34) trusty; urgency=low
+
+  * indigo port 
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Tue, 16 Sep 2014 18:48:21 +0200
+
+mv-cameras-ros (0.1-33) precise; urgency=low
 
   * compiling in trusty 
 
