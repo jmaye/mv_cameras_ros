@@ -37,12 +37,12 @@ namespace mv {
   CameraManagerNode::CameraManagerNode(const ros::NodeHandle& nh) :
       _nodeHandle(nh) {
     getParameters();
-    _deviceManager.reset(new DeviceManager());
+    _deviceManager = std::make_shared<DeviceManager>();
     _driverVersion = _deviceManager->getVersionAsString(lqDeviceManager);
     _updater.setHardwareID("mv_cameras_manager");
-    _cmFreq.reset(new diagnostic_updater::FrequencyStatus(
+    _cmFreq = std::make_shared<diagnostic_updater::FrequencyStatus>(
       diagnostic_updater::FrequencyStatusParam(
-      &_discoverMinFreq, &_discoverMaxFreq, 0.1, 60)));
+      &_discoverMinFreq, &_discoverMaxFreq, 0.1, 60));
     _updater.add("Frequency", _cmFreq.get(),
       &diagnostic_updater::FrequencyStatus::run);
     _updater.add("Camera manager", this,
@@ -78,8 +78,8 @@ namespace mv {
           bool isMaster = false;
           if (device->serial.readS() == _masterCameraSerial)
             isMaster = true;
-          _cameraNodes[device->serial.readS()] = std::shared_ptr<CameraNode>(
-            new CameraNode(_nodeHandle, device, isMaster));
+          _cameraNodes[device->serial.readS()] = std::make_shared<CameraNode>
+            (_nodeHandle, device, isMaster);
           _cameraNodes[device->serial.readS()]->start();
         }
       }

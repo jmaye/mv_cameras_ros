@@ -94,10 +94,10 @@ namespace mv {
     _imageSnappyPublisher =
       _nodeHandle.advertise<mv_cameras::ImageSnappyMsg>(
       _serial + "/image_snappy", _queueDepth);
-    _imgFreq.reset(new diagnostic_updater::HeaderlessTopicDiagnostic(
+    _imgFreq = std::make_shared<diagnostic_updater::HeaderlessTopicDiagnostic>(
       _serial + "/image_snappy", _updater,
       diagnostic_updater::FrequencyStatusParam(&_imgMinFreq, &_imgMaxFreq,
-      0.1, 10)));
+      0.1, 10));
     _imageRawPublisher = _imageTransport.advertise(_serial + "/image_raw",
       _queueDepth);
     _setExposureService = _nodeHandle.advertiseService(
@@ -251,42 +251,46 @@ namespace mv {
 
   void CameraNode::publishImage(const ros::Time& timestamp,
       const Request* request) {
-    mv_cameras::ImageSnappyMsgPtr imageSnappyMsg =
-      boost::make_shared<mv_cameras::ImageSnappyMsg>();
-    imageSnappyMsg->header.stamp = timestamp;
-    imageSnappyMsg->header.frame_id = _frameId;
-    imageSnappyMsg->header.seq = request->infoFrameNr.read();
-    imageSnappyMsg->width = request->imageWidth.read();
-    imageSnappyMsg->height = request->imageHeight.read();
-    imageSnappyMsg->hwTimestamp = request->infoTimeStamp_us.read();
-    imageSnappyMsg->gain = _lastImageGain;
-    imageSnappyMsg->exposureTime = _lastExposureTime;
-    imageSnappyMsg->pixelClock = _pixelClock;
-    std::string imageSnappy;
-    snappy::Compress(reinterpret_cast<char*>(request->imageData.read()),
-      request->imageSize.read(), &imageSnappy);
-    imageSnappyMsg->data.resize(imageSnappy.size());
-    std::copy(imageSnappy.begin(), imageSnappy.end(),
-      imageSnappyMsg->data.begin());
-    _imageSnappyPublisher.publish(imageSnappyMsg);
-    sensor_msgs::ImagePtr imageRawMsg =
-      boost::make_shared<sensor_msgs::Image>();
-    imageRawMsg->header.stamp = timestamp;
-    imageRawMsg->header.frame_id = _frameId;
-    imageRawMsg->header.seq = request->infoFrameNr.read();
-    imageRawMsg->height = request->imageHeight.read();
-    imageRawMsg->width = request->imageWidth.read();
-    imageRawMsg->step = request->imageLinePitch.read();
-    if (_colorMode)
-      imageRawMsg->encoding = sensor_msgs::image_encodings::RGB8;
-    else
-      imageRawMsg->encoding = sensor_msgs::image_encodings::MONO8;
-    imageRawMsg->data.resize(request->imageSize.read());
-    std::copy(reinterpret_cast<char*>(request->imageData.read()),
-      reinterpret_cast<char*>(request->imageData.read()) +
-      request->imageSize.read(),
-      imageRawMsg->data.begin());
-    _imageRawPublisher.publish(imageRawMsg);
+    if (_imageSnappyPublisher.getNumSubscribers() > 0) {
+      mv_cameras::ImageSnappyMsgPtr imageSnappyMsg =
+        boost::make_shared<mv_cameras::ImageSnappyMsg>();
+      imageSnappyMsg->header.stamp = timestamp;
+      imageSnappyMsg->header.frame_id = _frameId;
+      imageSnappyMsg->header.seq = request->infoFrameNr.read();
+      imageSnappyMsg->width = request->imageWidth.read();
+      imageSnappyMsg->height = request->imageHeight.read();
+      imageSnappyMsg->hwTimestamp = request->infoTimeStamp_us.read();
+      imageSnappyMsg->gain = _lastImageGain;
+      imageSnappyMsg->exposureTime = _lastExposureTime;
+      imageSnappyMsg->pixelClock = _pixelClock;
+      std::string imageSnappy;
+      snappy::Compress(reinterpret_cast<char*>(request->imageData.read()),
+        request->imageSize.read(), &imageSnappy);
+      imageSnappyMsg->data.resize(imageSnappy.size());
+      std::copy(imageSnappy.begin(), imageSnappy.end(),
+        imageSnappyMsg->data.begin());
+      _imageSnappyPublisher.publish(imageSnappyMsg);
+    }
+    if (_imageRawPublisher.getNumSubscribers() > 0) {
+      sensor_msgs::ImagePtr imageRawMsg =
+        boost::make_shared<sensor_msgs::Image>();
+      imageRawMsg->header.stamp = timestamp;
+      imageRawMsg->header.frame_id = _frameId;
+      imageRawMsg->header.seq = request->infoFrameNr.read();
+      imageRawMsg->height = request->imageHeight.read();
+      imageRawMsg->width = request->imageWidth.read();
+      imageRawMsg->step = request->imageLinePitch.read();
+      if (_colorMode)
+        imageRawMsg->encoding = sensor_msgs::image_encodings::RGB8;
+      else
+        imageRawMsg->encoding = sensor_msgs::image_encodings::MONO8;
+      imageRawMsg->data.resize(request->imageSize.read());
+      std::copy(reinterpret_cast<char*>(request->imageData.read()),
+        reinterpret_cast<char*>(request->imageData.read()) +
+        request->imageSize.read(),
+        imageRawMsg->data.begin());
+      _imageRawPublisher.publish(imageRawMsg);
+    }
     _imgFreq->tick();
     _updater.update();
   }
