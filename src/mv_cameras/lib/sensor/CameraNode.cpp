@@ -552,9 +552,9 @@ namespace mv {
     status.add("Image width", _lastImageWidth);
     status.add("Image gain [db]", _lastImageGain);
     status.add("Image exposure time [us]", _lastExposureTime);
-    status.addf("Image software timestamp [s]", "%f", _lastFrameSwTime);
+    status.add("Image software timestamp [ns]", _lastFrameSwTime);
     status.add("Image hardware timestamp [us]", _lastImageHwTimestamp);
-    status.add("Inter-frame software time [s]", _lastInterFrameSwTime);
+    status.add("Inter-frame software time [ns]", _lastInterFrameSwTime);
     status.add("Inter-frame hardware time [us]", _lastInterFrameHwTime);
     status.add("Image channel description", _lastImageChannelDesc);
     status.add("Image channel count", _lastImageChannelCount);
