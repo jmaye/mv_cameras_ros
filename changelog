@@ -1,3 +1,9 @@
+mv-cameras-ros (0.1-36) precise; urgency=low
+
+  * changing timestamps from double to integers 
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Fri, 24 Oct 2014 12:55:37 +0200
+
 mv-cameras-ros (0.1-35) precise; urgency=low
 
   * cleaning the code 

@@ -26,6 +26,7 @@
 #include <array>
 #include <iomanip>
 #include <algorithm>
+#include <chrono>
 
 #include <mvIMPACT_CPP/mvIMPACT_acquire.h>
 #include <mvIMPACT_CPP/mvIMPACT_acquire_GenICam.h>
@@ -36,7 +37,6 @@
 #include <sensor_msgs/image_encodings.h>
 
 #include "base/Timer.h"
-#include "base/Timestamp.h"
 
 #include "mv_cameras/ImageSnappyMsg.h"
 
@@ -305,7 +305,10 @@ namespace mv {
       if (fi.isRequestNrValid(_requestNr)) {
         const Request* pRequest = fi.getRequest(_requestNr);
         if (pRequest->isOK()) {
-          const double acqTime = Timestamp::now();
+          auto time = std::chrono::high_resolution_clock::now();
+          const int64_t acqTime =
+            std::chrono::duration_cast<std::chrono::nanoseconds>(
+            time.time_since_epoch()).count();
           _lastImageWidth = pRequest->imageWidth.read();
           _lastImageHeight = pRequest->imageHeight.read();
           if (_lastFrameNumber &&
@@ -320,11 +323,11 @@ namespace mv {
           _lastImageChannelDesc = pRequest->imageChannelDesc.read();
           _lastImageChannelCount = pRequest->imageChannelCount.read();
           _lastImageBytesPerPixel = pRequest->imageBytesPerPixel.read();
-          const long hwTimestamp = pRequest->infoTimeStamp_us.read();
+          const int64_t hwTimestamp = pRequest->infoTimeStamp_us.read();
           if (_lastImageHwTimestamp)
             _lastInterFrameHwTime = hwTimestamp - _lastImageHwTimestamp;
           _lastImageHwTimestamp = hwTimestamp;
-          publishImage(ros::Time(acqTime), pRequest);
+          publishImage(ros::Time().fromNSec(acqTime), pRequest);
         }
         else {
           ROS_WARN_STREAM("CameraNode::process(): "
@@ -516,7 +519,7 @@ namespace mv {
     int lostImagesCount = statistics.lostImagesCount.read();
     int framesIncompleteCount = statistics.framesIncompleteCount.read();
     float missingDataAverage_pc = statistics.missingDataAverage_pc.read();
-    long retransmitCount = statistics.retransmitCount.read();
+    int64_t retransmitCount = statistics.retransmitCount.read();
     status.add("Serial", _serial);
     status.add("Version", _deviceVersion);
     status.add("Firmware", _firmwareVersion);

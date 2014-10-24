@@ -26,6 +26,7 @@
 
 #include <memory>
 #include <string>
+#include <cstdint>
 
 #include <ros/ros.h>
 #include <diagnostic_updater/diagnostic_updater.h>
@@ -240,15 +241,15 @@ namespace mv {
     /// FPS tolerance between desired and actual
     double _fpsTolerance;
     /// Last frame software timestamp
-    double _lastFrameSwTime;
+    int64_t _lastFrameSwTime;
     /// Last frame number
     int _lastFrameNumber;
     /// Missed frames count
     int _missedFramesCount;
     /// Last inter-frame software time
-    double _lastInterFrameSwTime;
+    int64_t _lastInterFrameSwTime;
     /// Last inter-frame hardware time
-    long _lastInterFrameHwTime;
+    int64_t _lastInterFrameHwTime;
     /// Last image height
     int _lastImageHeight;
     /// Last image width
@@ -258,7 +259,7 @@ namespace mv {
     /// Last image exposure time
     int _lastExposureTime;
     /// Last image hardware timestamp
-    long _lastImageHwTimestamp;
+    int64_t _lastImageHwTimestamp;
     /// Last image channel description
     std::string _lastImageChannelDesc;
     /// Last image channel count
